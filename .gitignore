@@ -1,0 +1,231 @@
+# Compiled source #
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.so
+*.a
+*.out
+*.app
+*.pyc
+*.pyo
+
+# Kernel module #
+*.ko
+*.ko.cmd
+*.mod
+*.mod.c
+*.mod.o
+modules.order
+Module.symvers
+
+# Build artifacts #
+build/
+dist/
+*.egg-info/
+__pycache__/
+.eggs/
+*.egg
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile.bak
+
+# Object files #
+*.obj
+*.elf
+
+# Precompiled headers #
+*.gch
+*.pch
+
+# Libraries #
+*.lib
+*.a
+*.la
+*.lo
+*.slo
+
+# Shared objects #
+*.lo
+*.o
+*.so
+*.so.*
+*.dylib
+
+# Executables #
+*.exe
+*.out
+*.app
+*.i*86
+*.x86_64
+*.hex
+
+# Dependencies #
+*.d
+*.P
+dep/
+.deps/
+
+# IDE & Editor #
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+.DS_Store
+.project
+.cproject
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+# Debug symbols #
+*.dSYM/
+*.su
+*.gch
+
+# Misc #
+.cache/
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.hypothesis/
+*.cover
+.directory
+Thumbs.db
+desktop.ini
+
+# OS specific #
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files #
+*.tmp
+*.temp
+*.bak
+*.backup
+*.swp
+*.swo
+*~
+.~*
+\#*\#
+.\#*
+
+# Log files #
+*.log
+*.logs
+test-results.xml
+TEST-*.xml
+coverage.xml
+
+# Test artifacts #
+.tox/
+.pytest_cache/
+htmlcov/
+.coverage
+.coverage.*
+*.cover
+coverage/
+
+# Package files #
+*.tar.gz
+*.zip
+*.rar
+*.7z
+*.iso
+
+# Kernel #
+vmlinux
+System.map
+.config
+.config.old
+.version
+.tmp_versions/
+Module.markers
+
+# uImage #
+uImage
+uImage.bin
+
+# Device tree #
+*.dtb
+*.dtbo
+
+# GRUB #
+boot/grub/grub.cfg
+
+# Documentation #
+*.pdf
+*.dvi
+*.ps
+doxygen/
+
+# Generated files #
+*.generated.c
+*.generated.h
+version.h
+config.h
+
+# Custom ignore patterns #
+.ignore/
+ignore_me.txt
+
+# Sensitive files #
+*.pem
+*.key
+*.cert
+*.crt
+.ssh/
+.gnupg/
+secrets.txt
+.env
+.env.local
+
+# Build output #
+output/
+bin/
+lib/
+obj/
+Release/
+Debug/
+
+# Qt #
+*.pro.user
+*.pro.user.*
+
+# Misc build files #
+compile_commands.json
+.ninja_deps
+.ninja_log
+
+# Windows specific (to exclude) #
+*.exe
+*.dll
+*.lib
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+
+# Mac specific (to exclude) #
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Custom project ignores #
+.ntbox/
+.build/
+.install/
+*.ntbox
+test_output/
+benchmarks/
