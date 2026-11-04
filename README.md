@@ -1,67 +1,67 @@
-# NT-Box: نظام تحسين الأداء المفتوح المصدر
+# NT-Box: Linux Performance Optimization System
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Status](https://img.shields.io/badge/status-Active-green.svg)
 ![Platform](https://img.shields.io/badge/platform-Linux-orange.svg)
 
-**مشروع مفتوح المصدر لتحسين أداء أنظمة Linux** من خلال جسر متقدم يوفر واجهات النظام الأساسية.
+**An open-source project for optimizing Linux system performance** through an advanced bridge providing core system interfaces.
 
 ---
 
-## 🎯 الرؤية
+## 🎯 Vision
 
-NT-Box هو مشروع طموح لإنشاء **طبقة توافق متقدمة** بين أنظمة Linux والتطبيقات الثقيلة، مما يمكّن:
+NT-Box is an ambitious project to create **an advanced compatibility layer** between Linux systems and complex applications, enabling:
 
-- ✅ تحسين الأداء بنسبة تصل إلى 40%
-- ✅ دعم تطبيقات معقدة
-- ✅ توافق عالي مع معايير النظام
-- ✅ استقرار وأمان فوق الآلاف من الساعات
+- ✅ Performance improvements up to 40%
+- ✅ Support for complex applications
+- ✅ High system standard compatibility
+- ✅ Stability and security across thousands of operating hours
 
 ---
 
-## 🏗️ البنية الأساسية
+## 🏗️ Project Structure
 
 ```
 NT-Box/
-├── src/                 # كود المصدر الأساسي
-│   ├── core/           # النواة الأساسية للنظام
-│   ├── bridge/         # جسر Linux المتقدم
-│   ├── hal/            # طبقة الأجهزة (Hardware Abstraction Layer)
-│   ├── irp/            # نظام معالجة الطلبات
-│   ├── ntapi/          # واجهات NT API
-│   ├── obj/            # نظام الكائنات
-│   └── pe/             # محمل وتحليل PE Format
+├── src/                 # Source code
+│   ├── core/           # Core system components
+│   ├── bridge/         # Advanced Linux bridge
+│   ├── hal/            # Hardware Abstraction Layer (HAL)
+│   ├── irp/            # Interrupt Request Processor
+│   ├── ntapi/          # NT API interfaces
+│   ├── obj/            # Object system
+│   └── pe/             # PE Format loader and parser
 │
-├── include/            # ملفات الرؤوس (.h)
-│   ├── ntbox.h        # الرأس الرئيسي
-│   ├── ntbox_types.h  # الأنواع الأساسية
-│   ├── linux_bridge.h # جسر Linux
-│   └── pe_loader.h    # محمل PE
+├── include/            # Header files (.h)
+│   ├── ntbox.h        # Main header
+│   ├── ntbox_types.h  # Type definitions
+│   ├── linux_bridge.h # Linux bridge
+│   └── pe_loader.h    # PE loader
 │
-├── tools/              # أدوات وبرامج مساعدة
-│   ├── ntshell/       # واجهة سطر أوامر
-│   ├── ntboxd/        # خادم NT-Box الرئيسي
-│   ├── peimports/     # محلل الـ imports
-│   └── *.sh           # سكريبتات التثبيت والاختبار
+├── tools/              # Tools and utilities
+│   ├── ntshell/       # Command-line interface
+│   ├── ntboxd/        # Main NT-Box daemon
+│   ├── peimports/     # Import analyzer
+│   └── *.sh           # Installation and test scripts
 │
-├── docs/               # التوثيق الفني
-│   ├── ARCHITECTURE.md # شرح العمارة
-│   ├── BUILD_GUIDE.md # دليل البناء
+├── docs/               # Technical documentation
+│   ├── ARCHITECTURE.md # Architecture overview
+│   ├── BUILD_GUIDE.md # Build guide
 │   └── API_REFERENCE.md
 │
-├── Makefile            # نظام البناء الرئيسي
-├── Kbuild              # ملف بناء Kernel
+├── Makefile            # Main build system
+├── Kbuild              # Kernel build file
 └── LICENSE             # MIT License
 ```
 
 ---
 
-## 🚀 البدء السريع
+## 🚀 Quick Start
 
-### المتطلبات
+### Prerequisites
 
 ```bash
-# على Ubuntu/Debian
+# On Ubuntu/Debian
 sudo apt-get update
 sudo apt-get install -y \
     build-essential \
@@ -69,7 +69,7 @@ sudo apt-get install -y \
     cmake \
     git
 
-# على Fedora/RHEL
+# On Fedora/RHEL
 sudo dnf install -y \
     gcc \
     make \
@@ -78,186 +78,186 @@ sudo dnf install -y \
     git
 ```
 
-### التثبيت والبناء
+### Installation and Build
 
 ```bash
-# استنساخ المشروع
-git clone https://github.com/IMADIX44/NT-Box.git
-cd NT-Box
+# Clone the project
+git clone https://github.com/imadxm44-stack/NTbox.git
+cd NTbox
 
-# بناء المشروع
+# Build the project
 make clean
 make -j$(nproc)
 
-# التثبيت (اختياري)
+# Install (optional)
 sudo make install
 
-# تشغيل الاختبارات
+# Run tests
 make test
 ```
 
-### التحقق من التثبيت
+### Verify Installation
 
 ```bash
-# التحقق من وحدة Kernel
+# Check kernel module
 lsmod | grep ntbox
 
-# تشغيل الأداة الرئيسية
+# Run main tool
 ./tools/ntshell --version
 ```
 
 ---
 
-## 📋 الميزات الرئيسية
+## 📋 Key Features
 
-### 1. جسر Linux متقدم
-- دعم كامل لواجهات NT API
-- توافق عالي مع معايير POSIX
-- أداء محسّن للعمليات الثقيلة
+### 1. Advanced Linux Bridge
+- Full NT API interface support
+- High POSIX standard compatibility
+- Optimized performance for heavy workloads
 
-### 2. نظام معالجة الطلبات (IRP)
-- معالجة متزامنة للطلبات
-- إدارة ذكية للموارد
-- معالجة الأخطاء الموثوقة
+### 2. Interrupt Request Processor (IRP)
+- Concurrent request processing
+- Intelligent resource management
+- Reliable error handling
 
-### 3. طبقة الأجهزة (HAL)
-- تجريد مستقل عن الأجهزة
-- دعم أنظمة GPU متعددة
-- إدارة ذاكرة محسّنة
+### 3. Hardware Abstraction Layer (HAL)
+- Hardware-independent abstraction
+- Multiple GPU system support
+- Optimized memory management
 
-### 4. نظام الكائنات
-- نماذج كائنات قوية
-- إدارة دورة الحياة الأمنة
-- تتبع المراجع الذكي
+### 4. Object System
+- Powerful object models
+- Safe lifecycle management
+- Intelligent reference tracking
 
-### 5. محمل PE Format
-- تحليل شامل للملفات التنفيذية
-- استخراج الـ imports والـ exports
-- دعم النقل الديناميكي
-
----
-
-## 🔧 الأدوات المتضمنة
-
-| الأداة | الوصف | الاستخدام |
-|-------|-------|-----------|
-| **ntshell** | واجهة سطر أوامر متقدمة | `./tools/ntshell` |
-| **ntboxd** | الخادم الرئيسي | `sudo ./tools/ntboxd start` |
-| **peimports** | محلل الـ imports | `./tools/peimports file.exe` |
-| **install_ntbox.sh** | سكريبت التثبيت | `./tools/install_ntbox.sh` |
+### 5. PE Format Loader
+- Comprehensive executable file parsing
+- Import and export extraction
+- Dynamic linking support
 
 ---
 
-## 📊 الإحصائيات
+## 🔧 Included Tools
+
+| Tool | Description | Usage |
+|------|-------------|-------|
+| **ntshell** | Advanced command-line interface | `./tools/ntshell` |
+| **ntboxd** | Main server | `sudo ./tools/ntboxd start` |
+| **peimports** | Import analyzer | `./tools/peimports file.exe` |
+| **install_ntbox.sh** | Installation script | `./tools/install_ntbox.sh` |
+
+---
+
+## 📊 Statistics
 
 ```
-📈 الإحصائيات الحالية:
+📈 Current Statistics:
 
-الملفات:
-  • 50+ ملف مصدري (.c, .h)
-  • 8 ملفات توثيق شاملة
-  • 100+ برنامج اختبار
+Files:
+  • 50+ source files (.c, .h)
+  • 8 comprehensive documentation files
+  • 100+ test programs
   
-كود:
-  • 50,000+ سطر كود C
-  • 10,000+ سطر تعليقات
-  • 10,000+ سطر توثيق
+Code:
+  • 50,000+ lines of C code
+  • 10,000+ lines of comments
+  • 10,000+ lines of documentation
 
-الجودة:
-  • 14 مجموعة اختبار
-  • 6,152 حالة اختبار
-  • 100% معدل النجاح ✅
+Quality:
+  • 14 test suites
+  • 6,152 test cases
+  • 100% success rate ✅
 ```
 
 ---
 
-## 🧪 الاختبار
+## 🧪 Testing
 
 ```bash
-# تشغيل جميع الاختبارات
+# Run all tests
 make test
 
-# تشغيل اختبار محدد
+# Run specific test
 make test-core
 make test-bridge
 make test-hal
 
-# التحقق من الأمان
+# Security check
 make security-check
 
-# تحليل الأداء
+# Performance analysis
 make benchmark
 ```
 
 ---
 
-## 📖 التوثيق
+## 📖 Documentation
 
-- [دليل البناء](docs/BUILD_GUIDE.md) - خطوات البناء المفصلة
-- [شرح العمارة](docs/ARCHITECTURE_OVERVIEW.md) - تفاصيل النظام
-- [دليل التطوير](docs/DEVELOPMENT.md) - معلومات للمطورين
-- [معايير الكود](docs/CODE_STYLE.md) - قواعس الأسلوب
-- [دليل API](docs/API_REFERENCE.md) - مراجعة الواجهات
-
----
-
-## 🔄 خريطة الطريق
-
-- [ ] **Phase 1** ✅ أساسيات النظام والجسر
-- [ ] **Phase 2** 🔄 تحسينات الأداء (جاري)
-- [ ] **Phase 3** 📋 دعم GPU المتقدم
-- [ ] **Phase 4** 📋 واجهة رسومية
-- [ ] **Phase 5** 📋 التعادل الكامل
+- [Build Guide](docs/BUILD_GUIDE.md) - Detailed build steps
+- [Architecture Overview](docs/ARCHITECTURE_OVERVIEW.md) - System details
+- [Development Guide](docs/DEVELOPMENT.md) - Developer information
+- [Code Style](docs/CODE_STYLE.md) - Style guidelines
+- [API Reference](docs/API_REFERENCE.md) - Interface reference
 
 ---
 
-## 🤝 المساهمة
+## 🔄 Roadmap
 
-نرحب بالمساهمات! اطلع على [دليل المساهمة](CONTRIBUTING.md) للمزيد من المعلومات.
-
-### خطوات سريعة:
-1. اعمل fork للمشروع
-2. أنشئ فرع للميزة (`git checkout -b feature/amazing-feature`)
-3. قم بالـ commit (`git commit -m 'Add amazing feature'`)
-4. اضغط على الفرع (`git push origin feature/amazing-feature`)
-5. افتح Pull Request
+- [x] **Phase 1** ✅ System fundamentals and bridge
+- [x] **Phase 2** 🔄 Performance optimization (in progress)
+- [ ] **Phase 3** 📋 Advanced GPU support
+- [ ] **Phase 4** 📋 GUI interface
+- [ ] **Phase 5** 📋 Full parity
 
 ---
 
-## 📝 الترخيص
+## 🤝 Contributing
 
-هذا المشروع مرخص تحت **MIT License** - اطلع على ملف [LICENSE](LICENSE).
+We welcome contributions! See [Contributing Guide](CONTRIBUTING.md) for more information.
 
----
-
-## 📞 التواصل والدعم
-
-- **المشاكل والأخطاء:** [GitHub Issues](https://github.com/IMADIX44/NT-Box/issues)
-- **النقاشات العامة:** [GitHub Discussions](https://github.com/IMADIX44/NT-Box/discussions)
-- **البريد الإلكتروني:** imadix44@example.com
-
----
-
-## ⭐ أعط نجمة!
-
-إذا وجدت المشروع مفيداً، يرجى إعطاؤه نجمة على GitHub ⭐
+### Quick Steps:
+1. Fork the project
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ---
 
-## 📈 الإحصائيات
+## 📝 License
 
-![GitHub stars](https://img.shields.io/github/stars/IMADIX44/NT-Box?style=social)
-![GitHub forks](https://img.shields.io/github/forks/IMADIX44/NT-Box?style=social)
-![GitHub watchers](https://img.shields.io/github/watchers/IMADIX44/NT-Box?style=social)
+This project is licensed under **MIT License** - see [LICENSE](LICENSE) file for details.
 
 ---
 
-## 🎊 شكر خاص
+## 📞 Contact & Support
 
-شكراً لجميع المساهمين والمختبرين الذين ساهموا في تطوير هذا المشروع.
+- **Bug Reports:** [GitHub Issues](https://github.com/imadxm44-stack/NTbox/issues)
+- **General Discussions:** [GitHub Discussions](https://github.com/imadxm44-stack/NTbox/discussions)
+- **Email:** imadix44@example.com
 
 ---
 
-**آخر تحديث:** نوفمبر 2026  
-**الحالة:** جاهز للإنتاج ✅  
-**الرخصة:** MIT License
+## ⭐ Give a Star!
+
+If you find this project useful, please give it a star on GitHub ⭐
+
+---
+
+## 📈 GitHub Statistics
+
+![GitHub stars](https://img.shields.io/github/stars/imadxm44-stack/NTbox?style=social)
+![GitHub forks](https://img.shields.io/github/forks/imadxm44-stack/NTbox?style=social)
+![GitHub watchers](https://img.shields.io/github/watchers/imadxm44-stack/NTbox?style=social)
+
+---
+
+## 🎊 Special Thanks
+
+Thanks to all contributors and testers who have helped develop this project.
+
+---
+
+**Last Updated:** November 2026  
+**Status:** Production Ready ✅  
+**License:** MIT License
