@@ -1,0 +1,25 @@
+NT-BOX VERIFY REPORT v1
+generated: 2026-10-25T19:29:27+01:00
+kernel: 6.8.0-147-generic   win7: /home/imadix/Downloads/Niga/win7root   sudo: none
+
+suite                  status lamps OK/STUB/FAIL/UNIMPL detail
+--------------------------------------------------------------------------------
+build                  FAIL   0/0/0/0                  user tool build failed — see /home/imadix/Downloads/Niga/docs/verify/build.log
+trap                   FAIL   3874/3/1/0               exit=1, 1 check(s) failed — see /home/imadix/Downloads/Niga/docs/verify/trap.log
+pe                     PASS   15/0/0/0                 5 app(s) executed
+pe-gui                 PASS   0/0/0/0                  window app ran under wayland-1
+kernel                 SKIP   0/0/0/0                  no root — not counted as success
+registry               PASS   1253/0/0/0               399 service(s) read from the real SYSTEM hive
+services               PASS   837/0/0/0                SCM loaded from the real SYSTEM hive
+dll                    PASS   35/0/0/0                 PE exports + api-set + real DLL loader
+complex                PASS   29/0/0/0                 complex app & stub integration clean
+gpu                    PASS   13/0/0/0                 dmabuf/GBM path clean — 0 CPU copies measured
+disk                   PASS   34/1/0/0                 disk layer clean
+runtime                PASS   5/0/0/0                  runtime install layer clean
+syswow64               PASS   12/0/0/0                 PE32 loader + SysWOW64 peer verified
+driver                 PASS   5/1/0/0                  driver install layer clean
+gui-real               PASS   39/0/0/0                 GUI test: built=3, passed=3 (window, GDI, input)
+--------------------------------------------------------------------------------
+LAMP TOTAL: OK=6151 STUB=5 FAIL=1 UNIMPL=0
+SUITES:     PASS=12 FAIL=2 SKIP=1
+VERDICT: FAIL

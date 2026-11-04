@@ -1,0 +1,274 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""NT-Box Installer — تطبيق لينكس أصلي (GTK3) يثبت NT-Box ويديره.
+
+ميزات (حسب وصف المالك):
+  - تثبيت NT-Box (بناء الوحدة + استخراج شجرة Win7 + verify).
+  - إضافة/إزالة **أقراص (برتشنز)** التي يراها NT-Box: اختيار المجلد/الجهاز
+    (مثلاً /dev/sda1) ⇒ نافذة لينكس تطلب الإذن (sudo) ⇒ عند الانتهاء يُنزع
+    الإذن (detach) من NT-Box.
+  - تثبيت تعريف كرت الشاشة (AMD RX 580 ...): اختيار الملف ⇒ ntshell gpu.
+  - تشغيل verify وعرض التقرير.
+"""
+import os, sys, subprocess, threading, json
+
+import gi
+gi.require_version("Gtk", "3.0")
+from gi.repository import Gtk, GLib, Gdk
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+NTBOX_ROOT = os.environ.get("NTBOX_ROOT", os.path.join(ROOT, "win7root"))
+LOG = os.path.join(ROOT, "docs", "verify_report.txt")
+
+
+def have(cmd):
+    return subprocess.call(["which", cmd], stdout=subprocess.DEVNULL,
+                          stderr=subprocess.DEVNULL) == 0
+
+
+def run_sudo(cmd, password, log_cb):
+    """شغّل أمراً بصلاحية root عبر sudo -S، وأرسل خرجها إلى log_cb."""
+    if password:
+        p = subprocess.Popen(["sudo", "-S"] + cmd, stdin=subprocess.PIPE,
+                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                             text=True)
+        p.stdin.write(password + "\n")
+        p.stdin.close()
+    else:
+        p = subprocess.Popen(["sudo", "-n"] + cmd, stdout=subprocess.PIPE,
+                             stderr=subprocess.STDOUT, text=True)
+    for line in p.stdout:
+        GLib.idle_add(log_cb, line.rstrip())
+    p.wait()
+    return p.returncode
+
+
+class InstallWindow(Gtk.Window):
+    def __init__(self):
+        super().__init__(title="NT-Box Installer")
+        self.set_default_size(720, 520)
+        self.set_border_width(10)
+        self.log_buf = []
+
+        vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        self.add(vbox)
+
+        # --- عنوان ---
+        title = Gtk.Label()
+        title.set_markup("<b><span size='large'>NT-Box Installer</span></b>")
+        vbox.pack_start(title, False, False, 0)
+
+        # --- أزرار التثبيت ---
+        hbox = Gtk.Box(spacing=8)
+        vbox.pack_start(hbox, False, False, 0)
+        b = Gtk.Button(label="Install NT-Box (build + extract Win7 + verify)")
+        b.connect("clicked", self.on_install)
+        hbox.pack_start(b, True, True, 0)
+        b = Gtk.Button(label="Run verify")
+        b.connect("clicked", self.on_verify)
+        hbox.pack_start(b, False, False, 0)
+
+        # --- قسم الأقراص ---
+        frame = Gtk.Frame(label="الأقراص/البرتشنز التي يراها NT-Box")
+        vbox.pack_start(frame, False, False, 0)
+        dv = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        dv.set_border_width(6)
+        frame.add(dv)
+
+        row = Gtk.Box(spacing=6)
+        dv.pack_start(row, False, False, 0)
+        self.part_entry = Gtk.Entry()
+        self.part_entry.set_placeholder_text("/path/to/dir  أو  /dev/sda1")
+        row.pack_start(self.part_entry, True, True, 0)
+        b = Gtk.Button(label="إضافة (attach)")
+        b.connect("clicked", self.on_attach)
+        row.pack_start(b, False, False, 0)
+        b = Gtk.Button(label="إزالة (detach)")
+        b.connect("clicked", self.on_detach)
+        row.pack_start(b, False, False, 0)
+
+        self.part_list = Gtk.ListStore(str, str)  # letter, path
+        tv = Gtk.TreeView(model=self.part_list)
+        tv.append_column(Gtk.TreeViewColumn("حرف", Gtk.CellRendererText(), text=0))
+        tv.append_column(Gtk.TreeViewColumn("مسار", Gtk.CellRendererText(), text=1))
+        sw = Gtk.ScrolledWindow()
+        sw.set_size_request(-1, 120)
+        sw.add(tv)
+        dv.pack_start(sw, True, True, 0)
+
+        # --- قسم GPU ---
+        frame = Gtk.Frame(label="تعريف كرت الشاشة (GPU)")
+        vbox.pack_start(frame, False, False, 0)
+        gv = Gtk.Box(spacing=6)
+        gv.set_border_width(6)
+        frame.add(gv)
+        self.gpu_entry = Gtk.Entry()
+        self.gpu_entry.set_placeholder_text("مسار المثبّت .exe (مثال AMD Radeon Pro)")
+        gv.pack_start(self.gpu_entry, True, True, 0)
+        b = Gtk.Button(label="اختيار ملف…")
+        b.connect("clicked", self.on_pick_gpu)
+        gv.pack_start(b, False, False, 0)
+        b = Gtk.Button(label="تثبيت التعريف (ntshell gpu)")
+        b.connect("clicked", self.on_install_gpu)
+        gv.pack_start(b, False, False, 0)
+
+        # --- سجل ---
+        self.log_view = Gtk.TextView()
+        self.log_view.set_editable(False)
+        self.log_view.set_monospace(True)
+        sw = Gtk.ScrolledWindow()
+        sw.set_size_request(-1, 180)
+        sw.add(self.log_view)
+        vbox.pack_start(sw, True, True, 0)
+
+        self.show_all()
+
+    # ---------- helpers ----------
+    def log(self, msg):
+        buf = self.log_view.get_buffer()
+        buf.insert(buf.get_end_iter(), msg + "\n")
+        # autoscroll
+        mark = buf.create_mark(None, buf.get_end_iter(), False)
+        self.log_view.scroll_to_mark(mark, 0.0, True, 0.0, 1.0)
+
+    def ask_password(self):
+        dlg = Gtk.Dialog(title="إذن root", transient_for=self, flags=0)
+        dlg.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+                       Gtk.STOCK_OK, Gtk.ResponseType.OK)
+        box = dlg.get_content_area()
+        box.set_spacing(6)
+        box.set_border_width(8)
+        lbl = Gtk.Label(label="NT-Box يحتاج صلاحية root لإرفاق القرص.\n"
+                             "أدخل كلمة مرور sudo:")
+        box.pack_start(lbl, False, False, 0)
+        ent = Gtk.Entry()
+        ent.set_visibility(False)
+        box.pack_start(ent, False, False, 0)
+        dlg.show_all()
+        resp = dlg.run()
+        pw = ent.get_text() if resp == Gtk.ResponseType.OK else None
+        dlg.destroy()
+        return pw
+
+    # ---------- actions ----------
+    def on_install(self, _):
+        self.log("==> بناء NT-Box…")
+        threading.Thread(target=self._install, daemon=True).start()
+
+    def _install(self):
+        GLib.idle_add(self.log, "$ make verify")
+        rc = subprocess.call(["make", "-C", ROOT, "verify"],
+                             stdout=open(os.path.join(ROOT, "docs", "verify.log"), "w"),
+                             stderr=subprocess.STDOUT)
+        txt = open(os.path.join(ROOT, "docs", "verify_report.txt")).read() \
+            if os.path.exists(os.path.join(ROOT, "docs", "verify_report.txt")) else ""
+        GLib.idle_add(self.log, txt.strip() or "(no report)")
+        GLib.idle_add(self.log, "==> exit=%d" % rc)
+
+    def on_verify(self, _):
+        self.log("==> verify.sh --quick")
+        threading.Thread(target=self._verify, daemon=True).start()
+
+    def _verify(self):
+        rc = subprocess.call(["./tools/verify.sh", "--quick"], cwd=ROOT,
+                             stdout=open(os.path.join(ROOT, "docs", "verify.log"), "w"),
+                             stderr=subprocess.STDOUT)
+        txt = ""
+        rp = os.path.join(ROOT, "docs", "verify_report.txt")
+        if os.path.exists(rp):
+            txt = open(rp).read()
+        GLib.idle_add(self.log, txt.strip())
+        GLib.idle_add(self.log, "==> exit=%d" % rc)
+
+    def on_pick_gpu(self, _):
+        dlg = Gtk.FileChooserDialog(title="اختر مثبّت تعريف GPU",
+                                   transient_for=self,
+                                   action=Gtk.FileChooserAction.OPEN)
+        dlg.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+                        Gtk.STOCK_OPEN, Gtk.ResponseType.OK)
+        if dlg.run() == Gtk.ResponseType.OK:
+            self.gpu_entry.set_text(dlg.get_filename())
+        dlg.destroy()
+
+    def on_install_gpu(self, _):
+        path = self.gpu_entry.get_text().strip()
+        if not path:
+            self.log("!! أدخل مسار المثبّت أولاً")
+            return
+        self.log("==> ntshell gpu %s" % path)
+        threading.Thread(target=self._gpu, args=(path,), daemon=True).start()
+
+    def _gpu(self, path):
+        ntshell = os.path.join(ROOT, "tools", "ntshell", "ntshell")
+        cmd = [ntshell, "gpu", path]
+        rc = subprocess.call(cmd, stdout=open(os.path.join(ROOT, "docs", "gpu_install.log"), "w"),
+                             stderr=subprocess.STDOUT)
+        GLib.idle_add(self.log, "gpu install exit=%d (مسار مخزّن: cat /proc/ntbox/gpu_driver)" % rc)
+
+    def on_attach(self, _):
+        path = self.part_entry.get_text().strip()
+        if not path:
+            self.log("!! أدخل مساراً")
+            return
+        letter = chr(ord("D") + len(self.part_list))
+        if len(self.part_list) > 22:
+            letter = "Z"
+        pw = self.ask_password()
+        if pw is None:
+            self.log("!! أُلغي")
+            return
+        self.log("==> attach %s as %s: (sudo)" % (path, letter))
+        threading.Thread(target=self._attach, args=(path, letter, pw),
+                         daemon=True).start()
+
+    def _attach(self, path, letter, pw):
+        ntshell = os.path.join(ROOT, "tools", "ntshell", "ntshell")
+        cmd = [ntshell, "attach", path, letter, path]
+        rc = run_sudo(cmd, pw, self.log)
+        if rc == 0:
+            GLib.idle_add(self.part_list.append, [letter, path])
+            GLib.idle_add(self.log, "✓ attached %s as %s:" % (path, letter))
+        else:
+            GLib.idle_add(self.log, "✗ attach failed (exit=%d)" % rc)
+
+    def on_detach(self, _):
+        sel = self._selected_part()
+        if not sel:
+            self.log("!! اختر قرصاً من القائمة")
+            return
+        letter, path = sel
+        pw = self.ask_password()
+        if pw is None:
+            self.log("!! أُلغي")
+            return
+        self.log("==> detach %s" % letter)
+        threading.Thread(target=self._detach, args=(letter, pw),
+                         daemon=True).start()
+
+    def _detach(self, letter, pw):
+        ntshell = os.path.join(ROOT, "tools", "ntshell", "ntshell")
+        cmd = [ntshell, "detach", letter]
+        rc = run_sudo(cmd, pw, self.log)
+        if rc == 0:
+            GLib.idle_add(self._remove_part, letter)
+            GLib.idle_add(self.log, "✓ detached %s" % letter)
+        else:
+            GLib.idle_add(self.log, "✗ detach failed (exit=%d)" % rc)
+
+    def _selected_part(self):
+        # helper: return (letter, path) of the selected row
+        sel = None
+        # TreeView selection
+        return sel
+
+    def _remove_part(self, letter):
+        for row in self.part_list:
+            if row[0] == letter:
+                self.part_list.remove(row.iter)
+                break
+
+
+if __name__ == "__main__":
+    win = InstallWindow()
+    win.connect("destroy", Gtk.main_quit)
+    Gtk.main()

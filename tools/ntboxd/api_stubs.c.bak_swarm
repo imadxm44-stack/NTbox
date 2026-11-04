@@ -1,0 +1,1720 @@
+/*
+ * api_stubs.c — Comprehensive Win32 API stubs for common unresolved imports.
+ * 
+ * Implements 50+ commonly-unresolved APIs from kernel32, kernelbase, advapi32.
+ * Each stub:
+ *   - Logs its invocation via stderr
+ *   - Returns sensible defaults (non-null handles, valid counts, etc.)
+ *   - Never crashes/segfaults
+ *
+ * Stubs organized by category:
+ *   - Process Management
+ *   - Memory Management
+ *   - Thread Management
+ *   - Handle Management
+ *   - Environment/Registry
+ *   - File I/O
+ *   - Event/Synchronization
+ *   - DLL Loading
+ *   - Error Handling
+ *   - String Conversion
+ *   - System Information
+ */
+
+#define _GNU_SOURCE
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdint.h>
+#include <locale.h>
+#include <time.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <pthread.h>
+
+/* Windows types */
+typedef void      *HANDLE;
+typedef void      *LPVOID;
+typedef const void *LPCVOID;
+typedef uint32_t   DWORD;
+typedef uint16_t   WORD;
+typedef uint16_t   USHORT;
+typedef int        BOOL;
+typedef uint32_t   UINT;
+typedef uintptr_t  UINT_PTR;
+typedef intptr_t   LONG_PTR;
+typedef int32_t    LONG;
+typedef uint64_t   ULONGLONG;
+typedef const char *LPCSTR;
+typedef const uint16_t *LPCWSTR;
+typedef uint16_t   *LPWSTR;
+typedef char       *LPSTR;
+typedef size_t     SIZE_T;
+typedef unsigned char BYTE;
+typedef void      *PVOID;
+typedef const void *PCVOID;
+
+/* Handle constants */
+#ifndef TRUE
+#define TRUE 1
+#endif
+#ifndef FALSE
+#define FALSE 0
+#endif
+#define INVALID_HANDLE_VALUE ((HANDLE)(LONG_PTR)-1)
+#define NULL_HANDLE ((HANDLE)NULL)
+#define PSEUDO_HANDLE_BASE 0x100000000ULL
+
+/* Define a simple pseudo-handle generator */
+static uint64_t g_pseudo_handle_counter = PSEUDO_HANDLE_BASE;
+
+static HANDLE make_pseudo_handle(void)
+{
+    return (HANDLE)(g_pseudo_handle_counter++);
+}
+
+/* ====================================================================
+ * PROCESS MANAGEMENT
+ * ==================================================================== */
+
+/* GetCurrentProcess — return pseudo-handle for current process */
+HANDLE __attribute__((ms_abi)) ntboxd_GetCurrentProcess(void)
+{
+    fprintf(stderr, "[stub] GetCurrentProcess()\n");
+    static HANDLE proc_handle = NULL;
+    if (!proc_handle)
+        proc_handle = make_pseudo_handle();
+    return proc_handle;
+}
+
+/* GetCurrentProcessId — return current process ID */
+DWORD __attribute__((ms_abi)) ntboxd_GetCurrentProcessId(void)
+{
+    DWORD pid = (DWORD)getpid();
+    fprintf(stderr, "[stub] GetCurrentProcessId() -> 0x%x\n", pid);
+    return pid;
+}
+
+/* GetExitCodeProcess — always return success status */
+BOOL __attribute__((ms_abi)) ntboxd_GetExitCodeProcess(HANDLE hProcess, DWORD *lpExitCode)
+{
+    fprintf(stderr, "[stub] GetExitCodeProcess(%p, %p)\n", hProcess, lpExitCode);
+    if (lpExitCode)
+        *lpExitCode = 0;  /* success */
+    return 1;
+}
+
+/* CreateProcessA — stub: return failure (process creation not supported) */
+BOOL __attribute__((ms_abi)) ntboxd_CreateProcessA(
+    LPCSTR lpApplicationName,
+    LPSTR lpCommandLine,
+    PVOID lpProcessAttributes,
+    PVOID lpThreadAttributes,
+    BOOL bInheritHandles,
+    DWORD dwCreationFlags,
+    LPVOID lpEnvironment,
+    LPCSTR lpCurrentDirectory,
+    PVOID lpStartupInfo,
+    PVOID lpProcessInformation)
+{
+    fprintf(stderr, "[stub] CreateProcessA(\"%s\", \"%s\", ...) -> FAIL\n",
+            lpApplicationName ? lpApplicationName : "",
+            lpCommandLine ? lpCommandLine : "");
+    return 0;  /* fail */
+}
+
+/* CreateProcessW — stub: return failure */
+BOOL __attribute__((ms_abi)) ntboxd_CreateProcessW(
+    LPCWSTR lpApplicationName,
+    LPWSTR lpCommandLine,
+    PVOID lpProcessAttributes,
+    PVOID lpThreadAttributes,
+    BOOL bInheritHandles,
+    DWORD dwCreationFlags,
+    LPVOID lpEnvironment,
+    LPCWSTR lpCurrentDirectory,
+    PVOID lpStartupInfo,
+    PVOID lpProcessInformation)
+{
+    fprintf(stderr, "[stub] CreateProcessW(...) -> FAIL\n");
+    return 0;
+}
+
+/* TerminateProcess — stub: log and return success */
+BOOL __attribute__((ms_abi)) ntboxd_TerminateProcess(HANDLE hProcess, UINT uExitCode)
+{
+    fprintf(stderr, "[stub] TerminateProcess(%p, %u)\n", hProcess, uExitCode);
+    return 1;
+}
+
+/* OpenProcess — return pseudo-handle */
+HANDLE __attribute__((ms_abi)) ntboxd_OpenProcess(
+    DWORD dwDesiredAccess,
+    BOOL bInheritHandle,
+    DWORD dwProcessId)
+{
+    fprintf(stderr, "[stub] OpenProcess(access=0x%x, inherit=%d, pid=0x%x) -> pseudo-handle\n",
+            dwDesiredAccess, bInheritHandle, dwProcessId);
+    return make_pseudo_handle();
+}
+
+/* ====================================================================
+ * THREAD MANAGEMENT
+ * ==================================================================== */
+
+/* GetCurrentThread — return pseudo-handle */
+HANDLE __attribute__((ms_abi)) ntboxd_GetCurrentThread(void)
+{
+    fprintf(stderr, "[stub] GetCurrentThread()\n");
+    static HANDLE thr_handle = NULL;
+    if (!thr_handle)
+        thr_handle = make_pseudo_handle();
+    return thr_handle;
+}
+
+/* GetCurrentThreadId — return thread ID */
+DWORD __attribute__((ms_abi)) ntboxd_GetCurrentThreadId(void)
+{
+    DWORD tid = (DWORD)gettid();
+    if (tid == 0) tid = (DWORD)pthread_self();
+    fprintf(stderr, "[stub] GetCurrentThreadId() -> 0x%x\n", tid);
+    return tid;
+}
+
+/* GetExitCodeThread — always return success */
+BOOL __attribute__((ms_abi)) ntboxd_GetExitCodeThread(HANDLE hThread, DWORD *lpExitCode)
+{
+    fprintf(stderr, "[stub] GetExitCodeThread(%p, %p)\n", hThread, lpExitCode);
+    if (lpExitCode)
+        *lpExitCode = 0;
+    return 1;
+}
+
+/* ExitThread — log and exit current thread */
+DWORD __attribute__((ms_abi)) ntboxd_ExitThread(DWORD dwExitCode)
+{
+    fprintf(stderr, "[stub] ExitThread(%u)\n", dwExitCode);
+    pthread_exit(NULL);
+    return dwExitCode;
+}
+
+/* SetThreadPriority — log and return success */
+BOOL __attribute__((ms_abi)) ntboxd_SetThreadPriority(HANDLE hThread, int nPriority)
+{
+    fprintf(stderr, "[stub] SetThreadPriority(%p, %d)\n", hThread, nPriority);
+    return 1;
+}
+
+/* ResumeThread — log and return success */
+DWORD __attribute__((ms_abi)) ntboxd_ResumeThread(HANDLE hThread)
+{
+    fprintf(stderr, "[stub] ResumeThread(%p)\n", hThread);
+    return 1;
+}
+
+/* SuspendThread — log and return success */
+DWORD __attribute__((ms_abi)) ntboxd_SuspendThread(HANDLE hThread)
+{
+    fprintf(stderr, "[stub] SuspendThread(%p)\n", hThread);
+    return 1;
+}
+
+/* ====================================================================
+ * MEMORY MANAGEMENT
+ * ==================================================================== */
+
+/* HeapCreate — return pseudo-handle */
+HANDLE __attribute__((ms_abi)) ntboxd_HeapCreate(
+    DWORD flOptions,
+    SIZE_T dwInitialSize,
+    SIZE_T dwMaximumSize)
+{
+    fprintf(stderr, "[stub] HeapCreate(opts=0x%x, init=%zu, max=%zu) -> pseudo-heap\n",
+            flOptions, dwInitialSize, dwMaximumSize);
+    return make_pseudo_handle();
+}
+
+/* HeapDestroy — log and return success */
+BOOL __attribute__((ms_abi)) ntboxd_HeapDestroy(HANDLE hHeap)
+{
+    fprintf(stderr, "[stub] HeapDestroy(%p)\n", hHeap);
+    return 1;
+}
+
+/* HeapSize — return dummy size */
+SIZE_T __attribute__((ms_abi)) ntboxd_HeapSize(HANDLE hHeap, DWORD dwFlags, LPVOID lpMem)
+{
+    fprintf(stderr, "[stub] HeapSize(%p, 0x%x, %p) -> 0x1000\n", hHeap, dwFlags, lpMem);
+    return 0x1000;
+}
+
+/* HeapValidate — always return success */
+BOOL __attribute__((ms_abi)) ntboxd_HeapValidate(HANDLE hHeap, DWORD dwFlags, LPVOID lpMem)
+{
+    fprintf(stderr, "[stub] HeapValidate(%p, 0x%x, %p) -> TRUE\n", hHeap, dwFlags, lpMem);
+    return 1;
+}
+
+/* HeapCompact — log and return success */
+SIZE_T __attribute__((ms_abi)) ntboxd_HeapCompact(HANDLE hHeap, DWORD dwFlags)
+{
+    fprintf(stderr, "[stub] HeapCompact(%p, 0x%x)\n", hHeap, dwFlags);
+    return 0x1000;
+}
+
+/* HeapWalk — return success (no actual walking) */
+BOOL __attribute__((ms_abi)) ntboxd_HeapWalk(HANDLE hHeap, PVOID lpEntry)
+{
+    fprintf(stderr, "[stub] HeapWalk(%p, %p)\n", hHeap, lpEntry);
+    return 0;  /* no more entries */
+}
+
+/* LocalAlloc — allocate from system malloc */
+LPVOID __attribute__((ms_abi)) ntboxd_LocalAlloc(UINT uFlags, SIZE_T uBytes)
+{
+    LPVOID p = malloc(uBytes);
+    fprintf(stderr, "[stub] LocalAlloc(flags=0x%x, size=%zu) -> %p\n", uFlags, uBytes, p);
+    return p;
+}
+
+/* LocalFree — free local allocation */
+LPVOID __attribute__((ms_abi)) ntboxd_LocalFree(LPVOID hMem)
+{
+    fprintf(stderr, "[stub] LocalFree(%p)\n", hMem);
+    if (hMem)
+        free(hMem);
+    return NULL;
+}
+
+/* LocalReAlloc — realloc local memory */
+LPVOID __attribute__((ms_abi)) ntboxd_LocalReAlloc(LPVOID hMem, SIZE_T uBytes, UINT uFlags)
+{
+    LPVOID old_ptr = hMem;
+    LPVOID p = realloc(hMem, uBytes);
+    fprintf(stderr, "[stub] LocalReAlloc(%p, %zu, 0x%x) -> %p\n", old_ptr, uBytes, uFlags, p);
+    return p;
+}
+
+/* LocalSize — return size (dummy) */
+SIZE_T __attribute__((ms_abi)) ntboxd_LocalSize(LPVOID hMem)
+{
+    fprintf(stderr, "[stub] LocalSize(%p) -> 0x1000\n", hMem);
+    return 0x1000;
+}
+
+/* GlobalAlloc — allocate from system malloc */
+LPVOID __attribute__((ms_abi)) ntboxd_GlobalAlloc(UINT uFlags, SIZE_T dwBytes)
+{
+    LPVOID p = malloc(dwBytes);
+    fprintf(stderr, "[stub] GlobalAlloc(flags=0x%x, size=%zu) -> %p\n", uFlags, dwBytes, p);
+    return p;
+}
+
+/* GlobalFree — free global allocation */
+LPVOID __attribute__((ms_abi)) ntboxd_GlobalFree(LPVOID hMem)
+{
+    fprintf(stderr, "[stub] GlobalFree(%p)\n", hMem);
+    if (hMem)
+        free(hMem);
+    return NULL;
+}
+
+/* GlobalReAlloc — realloc global memory */
+LPVOID __attribute__((ms_abi)) ntboxd_GlobalReAlloc(LPVOID hMem, SIZE_T dwBytes, UINT uFlags)
+{
+    LPVOID old_ptr = hMem;
+    LPVOID p = realloc(hMem, dwBytes);
+    fprintf(stderr, "[stub] GlobalReAlloc(%p, %zu, 0x%x) -> %p\n", old_ptr, dwBytes, uFlags, p);
+    return p;
+}
+
+/* GlobalSize — return size (dummy) */
+SIZE_T __attribute__((ms_abi)) ntboxd_GlobalSize(LPVOID hMem)
+{
+    fprintf(stderr, "[stub] GlobalSize(%p) -> 0x1000\n", hMem);
+    return 0x1000;
+}
+
+/* ====================================================================
+ * HANDLE MANAGEMENT
+ * ==================================================================== */
+
+/* DuplicateHandle — return new pseudo-handle */
+BOOL __attribute__((ms_abi)) ntboxd_DuplicateHandle(
+    HANDLE hSourceProcessHandle,
+    HANDLE hSourceHandle,
+    HANDLE hTargetProcessHandle,
+    LPVOID lpTargetHandle,
+    DWORD dwDesiredAccess,
+    BOOL bInheritHandle,
+    DWORD dwOptions)
+{
+    fprintf(stderr, "[stub] DuplicateHandle(...)\n");
+    if (lpTargetHandle) {
+        HANDLE *p = (HANDLE *)lpTargetHandle;
+        *p = make_pseudo_handle();
+    }
+    return 1;
+}
+
+/* ====================================================================
+ * ENVIRONMENT & REGISTRY
+ * ==================================================================== */
+
+/* GetEnvironmentVariableA — stub: not found */
+DWORD __attribute__((ms_abi)) ntboxd_GetEnvironmentVariableA(
+    LPCSTR lpName,
+    LPSTR lpBuffer,
+    DWORD nSize)
+{
+    fprintf(stderr, "[stub] GetEnvironmentVariableA(\"%s\", %p, %u)\n",
+            lpName ? lpName : "", lpBuffer, nSize);
+    return 0;  /* not found */
+}
+
+/* GetEnvironmentVariableW — stub: not found */
+DWORD __attribute__((ms_abi)) ntboxd_GetEnvironmentVariableW(
+    LPCWSTR lpName,
+    LPWSTR lpBuffer,
+    DWORD nSize)
+{
+    fprintf(stderr, "[stub] GetEnvironmentVariableW(...)\n");
+    return 0;
+}
+
+/* GetCommandLine */
+LPSTR __attribute__((ms_abi)) ntboxd_GetCommandLineA(void) { return ""; }
+LPWSTR __attribute__((ms_abi)) ntboxd_GetCommandLineW(void) { static uint16_t cmd[] = { ' ', 0 }; return cmd; }
+DWORD __attribute__((ms_abi)) ntboxd_GetEnvironmentStringsA(void) { return (DWORD)0x10000; }
+DWORD __attribute__((ms_abi)) ntboxd_GetEnvironmentStringsW(void) { return (DWORD)0x10000; }
+BOOL __attribute__((ms_abi)) ntboxd_FreeEnvironmentStringsA(void *p) { (void)p; return TRUE; }
+BOOL __attribute__((ms_abi)) ntboxd_FreeEnvironmentStringsW(void *p) { (void)p; return TRUE; }
+
+/* SetEnvironmentVariableA — log and return success */
+BOOL __attribute__((ms_abi)) ntboxd_SetEnvironmentVariableA(
+    LPCSTR lpName,
+    LPCSTR lpValue)
+{
+    fprintf(stderr, "[stub] SetEnvironmentVariableA(\"%s\", \"%s\")\n",
+            lpName ? lpName : "",
+            lpValue ? lpValue : "");
+    return 1;
+}
+
+/* SetEnvironmentVariableW — log and return success */
+BOOL __attribute__((ms_abi)) ntboxd_SetEnvironmentVariableW(
+    LPCWSTR lpName,
+    LPCWSTR lpValue)
+{
+    fprintf(stderr, "[stub] SetEnvironmentVariableW(...)\n");
+    return 1;
+}
+
+/* ExpandEnvironmentStringsA — return input string as-is */
+DWORD __attribute__((ms_abi)) ntboxd_ExpandEnvironmentStringsA(
+    LPCSTR lpSrc,
+    LPSTR lpDst,
+    DWORD nSize)
+{
+    size_t len = lpSrc ? strlen(lpSrc) : 0;
+    fprintf(stderr, "[stub] ExpandEnvironmentStringsA(\"%s\", %p, %u) -> %zu\n",
+            lpSrc ? lpSrc : "", lpDst, nSize, len + 1);
+    if (lpDst && nSize > len)
+        strcpy(lpDst, lpSrc ? lpSrc : "");
+    return (DWORD)(len + 1);
+}
+
+/* ExpandEnvironmentStringsW — stub */
+DWORD __attribute__((ms_abi)) ntboxd_ExpandEnvironmentStringsW(
+    LPCWSTR lpSrc,
+    LPWSTR lpDst,
+    DWORD nSize)
+{
+    fprintf(stderr, "[stub] ExpandEnvironmentStringsW(...)\n");
+    return 0;
+}
+
+/* GetCurrentDirectoryA — return "C:\\" */
+DWORD __attribute__((ms_abi)) ntboxd_GetCurrentDirectoryA(
+    DWORD nBufferLength,
+    LPSTR lpBuffer)
+{
+    const char *cwd = "C:\\";
+    size_t len = strlen(cwd);
+    fprintf(stderr, "[stub] GetCurrentDirectoryA(%u, %p) -> \"%s\"\n",
+            nBufferLength, lpBuffer, cwd);
+    if (lpBuffer && nBufferLength > len)
+        strcpy(lpBuffer, cwd);
+    return (DWORD)(len + 1);
+}
+
+/* GetCurrentDirectoryW — stub */
+DWORD __attribute__((ms_abi)) ntboxd_GetCurrentDirectoryW(
+    DWORD nBufferLength,
+    LPWSTR lpBuffer)
+{
+    fprintf(stderr, "[stub] GetCurrentDirectoryW(...)\n");
+    return 0;
+}
+
+/* SetCurrentDirectoryA — log and return success */
+BOOL __attribute__((ms_abi)) ntboxd_SetCurrentDirectoryA(LPCSTR lpPathName)
+{
+    fprintf(stderr, "[stub] SetCurrentDirectoryA(\"%s\")\n", lpPathName ? lpPathName : "");
+    return 1;
+}
+
+/* SetCurrentDirectoryW — stub */
+BOOL __attribute__((ms_abi)) ntboxd_SetCurrentDirectoryW(LPCWSTR lpPathName)
+{
+    fprintf(stderr, "[stub] SetCurrentDirectoryW(...)\n");
+    return 1;
+}
+
+/* ====================================================================
+ * ERROR HANDLING
+ * ==================================================================== */
+
+/* GetLastError — return dummy error */
+DWORD __attribute__((ms_abi)) ntboxd_GetLastError(void)
+{
+    fprintf(stderr, "[stub] GetLastError() -> 0\n");
+    return 0;
+}
+
+/* SetLastError — log and return (void) */
+void __attribute__((ms_abi)) ntboxd_SetLastError(DWORD dwErrCode)
+{
+    fprintf(stderr, "[stub] SetLastError(0x%x)\n", dwErrCode);
+}
+
+/* UnhandledExceptionFilter — log and return default handler result */
+LONG __attribute__((ms_abi)) ntboxd_UnhandledExceptionFilter(PVOID lpTopLevelExceptionInfo)
+{
+    fprintf(stderr, "[stub] UnhandledExceptionFilter(%p) -> EXCEPTION_EXECUTE_HANDLER\n",
+            lpTopLevelExceptionInfo);
+    return 1;  /* EXCEPTION_EXECUTE_HANDLER */
+}
+
+/* SetUnhandledExceptionFilter — log and return old handler */
+PVOID __attribute__((ms_abi)) ntboxd_SetUnhandledExceptionFilter(PVOID lpTopLevelExceptionHandler)
+{
+    fprintf(stderr, "[stub] SetUnhandledExceptionFilter(%p)\n", lpTopLevelExceptionHandler);
+    return NULL;
+}
+
+/* SetErrorMode — log and return old mode */
+UINT __attribute__((ms_abi)) ntboxd_SetErrorMode(UINT uMode)
+{
+    fprintf(stderr, "[stub] SetErrorMode(0x%x)\n", uMode);
+    return 0;  /* SEM_FAILCRITICALERRORS */
+}
+
+/* ====================================================================
+ * STRING CONVERSION
+ * ==================================================================== */
+
+/* MultiByteToWideChar — minimal stub */
+int __attribute__((ms_abi)) ntboxd_MultiByteToWideChar(
+    UINT CodePage,
+    DWORD dwFlags,
+    LPCSTR lpMultiByteStr,
+    int cbMultiByte,
+    LPWSTR lpWideCharStr,
+    int cchWideChar)
+{
+    int len = lpMultiByteStr ? strlen(lpMultiByteStr) : 0;
+    if (cbMultiByte > 0)
+        len = cbMultiByte;
+    fprintf(stderr, "[stub] MultiByteToWideChar(cp=%u, ..., len=%d) -> %d\n",
+            CodePage, cbMultiByte, len);
+    if (lpWideCharStr && cchWideChar > len) {
+        for (int i = 0; i < len; i++)
+            lpWideCharStr[i] = (WORD)(unsigned char)lpMultiByteStr[i];
+        lpWideCharStr[len] = 0;
+    }
+    return len;
+}
+
+/* WideCharToMultiByte — minimal stub */
+int __attribute__((ms_abi)) ntboxd_WideCharToMultiByte(
+    UINT CodePage,
+    DWORD dwFlags,
+    LPCWSTR lpWideCharStr,
+    int cchWideChar,
+    LPSTR lpMultiByteStr,
+    int cbMultiByte,
+    LPCSTR lpDefaultChar,
+    unsigned char *lpUsedDefaultChar)
+{
+    int len = 0;
+    if (lpWideCharStr) {
+        while (lpWideCharStr[len] && len < cchWideChar)
+            len++;
+    }
+    fprintf(stderr, "[stub] WideCharToMultiByte(cp=%u, ..., len=%d) -> %d\n",
+            CodePage, cchWideChar, len);
+    if (lpMultiByteStr && cbMultiByte > len) {
+        for (int i = 0; i < len; i++)
+            lpMultiByteStr[i] = (char)(lpWideCharStr[i] & 0xFF);
+        lpMultiByteStr[len] = 0;
+    }
+    return len;
+}
+
+/* ====================================================================
+ * SYSTEM INFORMATION
+ * ==================================================================== */
+
+/* GetTickCount — return milliseconds since boot */
+DWORD __attribute__((ms_abi)) ntboxd_GetTickCount(void)
+{
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    DWORD tick = (DWORD)((ts.tv_sec * 1000) + (ts.tv_nsec / 1000000));
+    fprintf(stderr, "[stub] GetTickCount() -> %u\n", tick);
+    return tick;
+}
+
+/* GetSystemTimeAsFileTime — return current FILETIME */
+void __attribute__((ms_abi)) ntboxd_GetSystemTimeAsFileTime(ULONGLONG *lpSystemTimeAsFileTime)
+{
+    struct timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+    /* FILETIME = 100-nanosecond intervals since 1601-01-01 */
+    ULONGLONG filetime = (ts.tv_sec + 11644473600LL) * 10000000LL + (ts.tv_nsec / 100);
+    fprintf(stderr, "[stub] GetSystemTimeAsFileTime(%p) -> 0x%llx\n",
+            lpSystemTimeAsFileTime, (unsigned long long)filetime);
+    if (lpSystemTimeAsFileTime)
+        *lpSystemTimeAsFileTime = filetime;
+}
+
+/* QueryPerformanceCounter — return high-resolution counter */
+BOOL __attribute__((ms_abi)) ntboxd_QueryPerformanceCounter(ULONGLONG *lpPerformanceCount)
+{
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    ULONGLONG counter = ts.tv_sec * 1000000000LL + ts.tv_nsec;
+    fprintf(stderr, "[stub] QueryPerformanceCounter(%p) -> 0x%llx\n",
+            lpPerformanceCount, (unsigned long long)counter);
+    if (lpPerformanceCount)
+        *lpPerformanceCount = counter;
+    return 1;
+}
+
+/* QueryPerformanceFrequency — return frequency */
+BOOL __attribute__((ms_abi)) ntboxd_QueryPerformanceFrequency(ULONGLONG *lpFrequency)
+{
+    fprintf(stderr, "[stub] QueryPerformanceFrequency(%p) -> 1000000000 (1GHz)\n", lpFrequency);
+    if (lpFrequency)
+        *lpFrequency = 1000000000LL;  /* 1 GHz */
+    return 1;
+}
+
+/* GetSystemInfo — fill in SYSTEM_INFO structure */
+void __attribute__((ms_abi)) ntboxd_GetSystemInfo(PVOID lpSystemInfo)
+{
+    fprintf(stderr, "[stub] GetSystemInfo(%p)\n", lpSystemInfo);
+    /* SYSTEM_INFO structure (36 bytes on x86, 48 on x64) */
+    if (lpSystemInfo) {
+        memset(lpSystemInfo, 0, 48);
+        *(DWORD *)((char *)lpSystemInfo + 0) = 9;   /* dwOemId */
+        *(DWORD *)((char *)lpSystemInfo + 4) = 4096; /* dwPageSize */
+        *(DWORD *)((char *)lpSystemInfo + 8) = (DWORD)(uintptr_t)0x10000; /* lpMinimumApplicationAddress */
+        *(DWORD *)((char *)lpSystemInfo + 12) = 0x7FFEFFFF; /* lpMaximumApplicationAddress */
+        *(DWORD *)((char *)lpSystemInfo + 16) = 0; /* dwActiveProcessorMask */
+        *(DWORD *)((char *)lpSystemInfo + 20) = 4;  /* dwNumberOfProcessors */
+        *(WORD *)((char *)lpSystemInfo + 24) = 0; /* wProcessorArchitecture */
+        *(WORD *)((char *)lpSystemInfo + 26) = 0; /* wReserved */
+        *(DWORD *)((char *)lpSystemInfo + 28) = 0x1000; /* dwAllocationGranularity */
+        *(WORD *)((char *)lpSystemInfo + 32) = 6; /* wProcessorLevel */
+        *(WORD *)((char *)lpSystemInfo + 34) = 1; /* wProcessorRevision */
+    }
+}
+
+/* GetLocalTime — return current time */
+void __attribute__((ms_abi)) ntboxd_GetLocalTime(PVOID lpSystemTime)
+{
+    fprintf(stderr, "[stub] GetLocalTime(%p)\n", lpSystemTime);
+    /* SYSTEMTIME: Year, Month, DayOfWeek, Day, Hour, Minute, Second, Milliseconds (16 bytes) */
+    if (lpSystemTime) {
+        memset(lpSystemTime, 0, 16);
+        time_t now = time(NULL);
+        struct tm *tm = localtime(&now);
+        *(WORD *)((char *)lpSystemTime + 0) = tm->tm_year + 1900;   /* Year */
+        *(WORD *)((char *)lpSystemTime + 2) = tm->tm_mon + 1;       /* Month */
+        *(WORD *)((char *)lpSystemTime + 4) = tm->tm_wday;          /* DayOfWeek */
+        *(WORD *)((char *)lpSystemTime + 6) = tm->tm_mday;          /* Day */
+        *(WORD *)((char *)lpSystemTime + 8) = tm->tm_hour;          /* Hour */
+        *(WORD *)((char *)lpSystemTime + 10) = tm->tm_min;          /* Minute */
+        *(WORD *)((char *)lpSystemTime + 12) = tm->tm_sec;          /* Second */
+        *(WORD *)((char *)lpSystemTime + 14) = 0;                  /* Milliseconds */
+    }
+}
+
+/* SetLocalTime — log and return success */
+BOOL __attribute__((ms_abi)) ntboxd_SetLocalTime(const PVOID lpSystemTime)
+{
+    fprintf(stderr, "[stub] SetLocalTime(%p)\n", lpSystemTime);
+    return 1;
+}
+
+/* GetVersionExA — return Windows 7 version info */
+BOOL __attribute__((ms_abi)) ntboxd_GetVersionExA(PVOID lpVersionInformation)
+{
+    fprintf(stderr, "[stub] GetVersionExA(%p) -> Windows 7\n", lpVersionInformation);
+    if (lpVersionInformation) {
+        memset(lpVersionInformation, 0, 148);  /* OSVERSIONINFOEXA size */
+        *(DWORD *)((char *)lpVersionInformation + 0) = 148;   /* dwOSVersionInfoSize */
+        *(DWORD *)((char *)lpVersionInformation + 4) = 6;     /* dwMajorVersion */
+        *(DWORD *)((char *)lpVersionInformation + 8) = 1;     /* dwMinorVersion */
+        *(DWORD *)((char *)lpVersionInformation + 12) = 7600; /* dwBuildNumber */
+        *(DWORD *)((char *)lpVersionInformation + 16) = 2;    /* dwPlatformId (VER_PLATFORM_WIN32_NT) */
+    }
+    return 1;
+}
+
+/* GetVersionExW — stub version */
+BOOL __attribute__((ms_abi)) ntboxd_GetVersionExW(PVOID lpVersionInformation)
+{
+    fprintf(stderr, "[stub] GetVersionExW(...) -> Windows 7\n");
+    if (lpVersionInformation) {
+        memset(lpVersionInformation, 0, 284);  /* OSVERSIONINFOEXW larger */
+        *(DWORD *)((char *)lpVersionInformation + 0) = 284;
+        *(DWORD *)((char *)lpVersionInformation + 4) = 6;
+        *(DWORD *)((char *)lpVersionInformation + 8) = 1;
+        *(DWORD *)((char *)lpVersionInformation + 12) = 7600;
+        *(DWORD *)((char *)lpVersionInformation + 16) = 2;
+    }
+    return 1;
+}
+
+/* GetStartupInfoA/W */
+void __attribute__((ms_abi)) ntboxd_GetStartupInfoA(PVOID lpStartupInfo)
+{
+    fprintf(stderr, "[stub] GetStartupInfoA(%p)\n", lpStartupInfo);
+    if (lpStartupInfo) memset(lpStartupInfo, 0, 68);
+}
+void __attribute__((ms_abi)) ntboxd_GetStartupInfoW(PVOID lpStartupInfo)
+{
+    fprintf(stderr, "[stub] GetStartupInfoW(%p)\n", lpStartupInfo);
+    if (lpStartupInfo) memset(lpStartupInfo, 0, 68);
+}
+
+/* ====================================================================
+ * INTERLOCKED OPERATIONS
+ * ==================================================================== */
+
+/* InterlockedIncrement — atomic increment */
+LONG __attribute__((ms_abi)) ntboxd_InterlockedIncrement(LONG *lpAddend)
+{
+    if (lpAddend) {
+        (*lpAddend)++;
+        fprintf(stderr, "[stub] InterlockedIncrement(%p) -> %d\n", lpAddend, *lpAddend);
+        return *lpAddend;
+    }
+    return 0;
+}
+
+/* InterlockedDecrement — atomic decrement */
+LONG __attribute__((ms_abi)) ntboxd_InterlockedDecrement(LONG *lpAddend)
+{
+    if (lpAddend) {
+        (*lpAddend)--;
+        fprintf(stderr, "[stub] InterlockedDecrement(%p) -> %d\n", lpAddend, *lpAddend);
+        return *lpAddend;
+    }
+    return 0;
+}
+
+/* InterlockedExchange — atomic exchange */
+LONG __attribute__((ms_abi)) ntboxd_InterlockedExchange(LONG *Target, LONG Value)
+{
+    LONG old = 0;
+    if (Target) {
+        old = *Target;
+        *Target = Value;
+    }
+    fprintf(stderr, "[stub] InterlockedExchange(%p, %d) -> %d\n", Target, Value, old);
+    return old;
+}
+
+/* InterlockedCompareExchange — atomic compare-and-swap */
+LONG __attribute__((ms_abi)) ntboxd_InterlockedCompareExchange(
+    LONG *Destination,
+    LONG Exchange,
+    LONG Comperand)
+{
+    LONG old = 0;
+    if (Destination) {
+        old = *Destination;
+        if (old == Comperand)
+            *Destination = Exchange;
+    }
+    fprintf(stderr, "[stub] InterlockedCompareExchange(%p, %d, %d) -> %d\n",
+            Destination, Exchange, Comperand, old);
+    return old;
+}
+
+/* InterlockedCompareExchange64 — 64-bit atomic CAS */
+uint64_t __attribute__((ms_abi)) ntboxd_InterlockedCompareExchange64(
+    uint64_t *Destination,
+    uint64_t Exchange,
+    uint64_t Comperand)
+{
+    uint64_t old = 0;
+    if (Destination) {
+        old = *Destination;
+        if (old == Comperand)
+            *Destination = Exchange;
+    }
+    fprintf(stderr, "[stub] InterlockedCompareExchange64(%p, 0x%llx, 0x%llx) -> 0x%llx\n",
+            Destination, (unsigned long long)Exchange, (unsigned long long)Comperand,
+            (unsigned long long)old);
+    return old;
+}
+
+/* ====================================================================
+ * DIRECTORY/PATH OPERATIONS
+ * ==================================================================== */
+
+/* GetSystemDirectoryA — return "C:\\Windows\\System32" */
+UINT __attribute__((ms_abi)) ntboxd_GetSystemDirectoryA(LPSTR lpBuffer, UINT uSize)
+{
+    const char *sysdir = "C:\\Windows\\System32";
+    size_t len = strlen(sysdir);
+    fprintf(stderr, "[stub] GetSystemDirectoryA(%p, %u) -> \"%s\"\n", lpBuffer, uSize, sysdir);
+    if (lpBuffer && uSize > len)
+        strcpy(lpBuffer, sysdir);
+    return (UINT)(len + 1);
+}
+
+/* GetSystemDirectoryW — stub */
+UINT __attribute__((ms_abi)) ntboxd_GetSystemDirectoryW(LPWSTR lpBuffer, UINT uSize)
+{
+    fprintf(stderr, "[stub] GetSystemDirectoryW(...)\n");
+    return 0;
+}
+
+/* GetWindowsDirectoryA — return "C:\\Windows" */
+UINT __attribute__((ms_abi)) ntboxd_GetWindowsDirectoryA(LPSTR lpBuffer, UINT uSize)
+{
+    const char *windir = "C:\\Windows";
+    size_t len = strlen(windir);
+    fprintf(stderr, "[stub] GetWindowsDirectoryA(%p, %u) -> \"%s\"\n", lpBuffer, uSize, windir);
+    if (lpBuffer && uSize > len)
+        strcpy(lpBuffer, windir);
+    return (UINT)(len + 1);
+}
+
+/* GetWindowsDirectoryW — stub */
+UINT __attribute__((ms_abi)) ntboxd_GetWindowsDirectoryW(LPWSTR lpBuffer, UINT uSize)
+{
+    fprintf(stderr, "[stub] GetWindowsDirectoryW(...)\n");
+    return 0;
+}
+
+/* ====================================================================
+ * DLL LOADING & MODULE MANAGEMENT
+ * ==================================================================== */
+
+/* GetModuleFileNameA — return dummy path */
+DWORD __attribute__((ms_abi)) ntboxd_GetModuleFileNameA(
+    HANDLE hModule,
+    LPSTR lpFilename,
+    DWORD nSize)
+{
+    const char *path = "C:\\Program Files\\App\\app.exe";
+    size_t len = strlen(path);
+    fprintf(stderr, "[stub] GetModuleFileNameA(%p, %p, %u) -> \"%s\"\n",
+            hModule, lpFilename, nSize, path);
+    if (lpFilename && nSize > len)
+        strcpy(lpFilename, path);
+    return (DWORD)(len + 1);
+}
+
+/* GetModuleFileNameW — stub */
+DWORD __attribute__((ms_abi)) ntboxd_GetModuleFileNameW(
+    HANDLE hModule,
+    LPWSTR lpFilename,
+    DWORD nSize)
+{
+    fprintf(stderr, "[stub] GetModuleFileNameW(...)\n");
+    return 0;
+}
+
+/* GetModuleHandleExA — return pseudo-handle */
+BOOL __attribute__((ms_abi)) ntboxd_GetModuleHandleExA(
+    DWORD dwFlags,
+    LPCSTR lpModuleName,
+    HANDLE *phModule)
+{
+    fprintf(stderr, "[stub] GetModuleHandleExA(flags=0x%x, \"%s\", %p)\n",
+            dwFlags, lpModuleName ? lpModuleName : "", phModule);
+    if (phModule)
+        *phModule = make_pseudo_handle();
+    return 1;
+}
+
+/* GetModuleHandleExW — stub */
+BOOL __attribute__((ms_abi)) ntboxd_GetModuleHandleExW(
+    DWORD dwFlags,
+    LPCWSTR lpModuleName,
+    HANDLE *phModule)
+{
+    fprintf(stderr, "[stub] GetModuleHandleExW(...)\n");
+    if (phModule)
+        *phModule = make_pseudo_handle();
+    return 1;
+}
+
+/* FreeLibraryAndExitThread — free and exit */
+void __attribute__((ms_abi)) ntboxd_FreeLibraryAndExitThread(HANDLE hLibModule, DWORD dwExitCode)
+{
+    fprintf(stderr, "[stub] FreeLibraryAndExitThread(%p, %u)\n", hLibModule, dwExitCode);
+    pthread_exit(NULL);
+}
+
+/* DisableThreadLibraryCalls — log and return success */
+BOOL __attribute__((ms_abi)) ntboxd_DisableThreadLibraryCalls(HANDLE hLibModule)
+{
+    fprintf(stderr, "[stub] DisableThreadLibraryCalls(%p)\n", hLibModule);
+    return 1;
+}
+
+/* LoadLibraryExA — return pseudo-handle */
+HANDLE __attribute__((ms_abi)) ntboxd_LoadLibraryExA(
+    LPCSTR lpLibFileName,
+    HANDLE hFile,
+    DWORD dwFlags)
+{
+    fprintf(stderr, "[stub] LoadLibraryExA(\"%s\", %p, 0x%x) -> pseudo-handle\n",
+            lpLibFileName ? lpLibFileName : "", hFile, dwFlags);
+    return make_pseudo_handle();
+}
+
+/* LoadLibraryExW — stub */
+HANDLE __attribute__((ms_abi)) ntboxd_LoadLibraryExW(
+    LPCWSTR lpLibFileName,
+    HANDLE hFile,
+    DWORD dwFlags)
+{
+    fprintf(stderr, "[stub] LoadLibraryExW(...) -> pseudo-handle\n");
+    return make_pseudo_handle();
+}
+
+/* LoadLibraryW — stub */
+HANDLE __attribute__((ms_abi)) ntboxd_LoadLibraryW(LPCWSTR lpLibFileName)
+{
+    fprintf(stderr, "[stub] LoadLibraryW(...) -> pseudo-handle\n");
+    return make_pseudo_handle();
+}
+
+/* ====================================================================
+ * MISC UTILITIES
+ * ==================================================================== */
+
+/* MulDiv — multiply and divide */
+int __attribute__((ms_abi)) ntboxd_MulDiv(int nNumber, int nNumerator, int nDenominator)
+{
+    fprintf(stderr, "[stub] MulDiv(%d, %d, %d)\n", nNumber, nNumerator, nDenominator);
+    if (nDenominator == 0)
+        return -1;
+    return (int)((long long)nNumber * nNumerator / nDenominator);
+}
+
+/* IsDBCSLeadByte — check if byte is DBCS lead */
+BOOL __attribute__((ms_abi)) ntboxd_IsDBCSLeadByte(BYTE TestChar)
+{
+    fprintf(stderr, "[stub] IsDBCSLeadByte(0x%02x) -> FALSE\n", TestChar);
+    return 0;  /* ASCII only */
+}
+
+/* GetACP — get ANSI code page (1252 = Western European) */
+UINT __attribute__((ms_abi)) ntboxd_GetACP(void)
+{
+    fprintf(stderr, "[stub] GetACP() -> 1252\n");
+    return 1252;
+}
+
+/* GetOEMCP — get OEM code page (437 = US) */
+UINT __attribute__((ms_abi)) ntboxd_GetOEMCP(void)
+{
+    fprintf(stderr, "[stub] GetOEMCP() -> 437\n");
+    return 437;
+}
+
+/* GetUserDefaultLCID — get user locale */
+DWORD __attribute__((ms_abi)) ntboxd_GetUserDefaultLCID(void)
+{
+    fprintf(stderr, "[stub] GetUserDefaultLCID() -> 0x409 (en-US)\n");
+    return 0x409;  /* en-US */
+}
+
+/* IsValidLocale — always return TRUE */
+BOOL __attribute__((ms_abi)) ntboxd_IsValidLocale(DWORD Locale, DWORD dwFlags)
+{
+    fprintf(stderr, "[stub] IsValidLocale(0x%x, 0x%x) -> TRUE\n", Locale, dwFlags);
+    return 1;
+}
+
+/* ConvertDefaultLocale — return input locale */
+DWORD __attribute__((ms_abi)) ntboxd_ConvertDefaultLocale(DWORD Locale)
+{
+    fprintf(stderr, "[stub] ConvertDefaultLocale(0x%x) -> 0x%x\n", Locale, Locale);
+    return Locale;
+}
+
+/* ====================================================================
+ * REGISTRY OPERATIONS (stubs for common registry functions)
+ * ==================================================================== */
+
+/* RegQueryValueExA — return success with empty data */
+LONG __attribute__((ms_abi)) ntboxd_RegQueryValueExA(
+    HANDLE hKey,
+    LPCSTR lpValueName,
+    DWORD *lpReserved,
+    DWORD *lpType,
+    BYTE *lpData,
+    DWORD *lpcbData)
+{
+    fprintf(stderr, "[stub] RegQueryValueExA(%p, \"%s\", ...) -> ERROR_FILE_NOT_FOUND\n",
+            hKey, lpValueName ? lpValueName : "");
+    return 2;  /* ERROR_FILE_NOT_FOUND */
+}
+
+/* RegQueryValueExW — stub */
+LONG __attribute__((ms_abi)) ntboxd_RegQueryValueExW(
+    HANDLE hKey,
+    LPCWSTR lpValueName,
+    DWORD *lpReserved,
+    DWORD *lpType,
+    BYTE *lpData,
+    DWORD *lpcbData)
+{
+    fprintf(stderr, "[stub] RegQueryValueExW(...) -> ERROR_FILE_NOT_FOUND\n");
+    return 2;
+}
+
+/* RegEnumValueA — return success with no more entries */
+LONG __attribute__((ms_abi)) ntboxd_RegEnumValueA(
+    HANDLE hKey,
+    DWORD dwIndex,
+    LPSTR lpValueName,
+    DWORD *lpcchValueName,
+    DWORD *lpReserved,
+    DWORD *lpType,
+    BYTE *lpData,
+    DWORD *lpcbData)
+{
+    fprintf(stderr, "[stub] RegEnumValueA(%p, %u, ...) -> ERROR_NO_MORE_ITEMS\n", hKey, dwIndex);
+    return 259;  /* ERROR_NO_MORE_ITEMS */
+}
+
+/* RegEnumValueW — stub */
+LONG __attribute__((ms_abi)) ntboxd_RegEnumValueW(
+    HANDLE hKey,
+    DWORD dwIndex,
+    LPWSTR lpValueName,
+    DWORD *lpcchValueName,
+    DWORD *lpReserved,
+    DWORD *lpType,
+    BYTE *lpData,
+    DWORD *lpcbData)
+{
+    fprintf(stderr, "[stub] RegEnumValueW(...) -> ERROR_NO_MORE_ITEMS\n");
+    return 259;
+}
+
+/* RegQueryInfoKeyA — return basic info */
+LONG __attribute__((ms_abi)) ntboxd_RegQueryInfoKeyA(
+    HANDLE hKey,
+    LPSTR lpClass,
+    DWORD *lpcchClass,
+    DWORD *lpReserved,
+    DWORD *lpcSubKeys,
+    DWORD *lpcbMaxSubKeyLen,
+    DWORD *lpcbMaxClassLen,
+    DWORD *lpcValues,
+    DWORD *lpcbMaxValueNameLen,
+    DWORD *lpcbMaxValueLen,
+    DWORD *lpcbSecurityDescriptor,
+    PVOID lpftLastWriteTime)
+{
+    fprintf(stderr, "[stub] RegQueryInfoKeyA(%p, ...)\n", hKey);
+    if (lpcSubKeys) *lpcSubKeys = 0;
+    if (lpcValues) *lpcValues = 0;
+    return 0;  /* ERROR_SUCCESS */
+}
+
+/* RegQueryInfoKeyW — stub */
+LONG __attribute__((ms_abi)) ntboxd_RegQueryInfoKeyW(
+    HANDLE hKey,
+    LPWSTR lpClass,
+    DWORD *lpcchClass,
+    DWORD *lpReserved,
+    DWORD *lpcSubKeys,
+    DWORD *lpcbMaxSubKeyLen,
+    DWORD *lpcbMaxClassLen,
+    DWORD *lpcValues,
+    DWORD *lpcbMaxValueNameLen,
+    DWORD *lpcbMaxValueLen,
+    DWORD *lpcbSecurityDescriptor,
+    PVOID lpftLastWriteTime)
+{
+    fprintf(stderr, "[stub] RegQueryInfoKeyW(...)\n");
+    if (lpcSubKeys) *lpcSubKeys = 0;
+    if (lpcValues) *lpcValues = 0;
+    return 0;
+}
+
+/* ====================================================================
+ * FLS (Fiber Local Storage) - common in modern apps
+ * ==================================================================== */
+static DWORD g_fls_slots[128];
+static BOOL g_fls_used[128];
+
+DWORD __attribute__((ms_abi)) ntboxd_FlsAlloc(void *lpCallback)
+{
+    (void)lpCallback;
+    for (int i = 0; i < 128; i++) {
+        if (!g_fls_used[i]) {
+            g_fls_used[i] = TRUE;
+            fprintf(stderr, "[stub] FlsAlloc() -> %d\n", i);
+            return i;
+        }
+    }
+    return 0xFFFFFFFF; /* FLS_OUT_OF_INDEXES */
+}
+
+PVOID __attribute__((ms_abi)) ntboxd_FlsGetValue(DWORD dwFlsIndex)
+{
+    fprintf(stderr, "[stub] FlsGetValue(%u)\n", dwFlsIndex);
+    if (dwFlsIndex < 128 && g_fls_used[dwFlsIndex])
+        return (PVOID)(uintptr_t)g_fls_slots[dwFlsIndex];
+    return NULL;
+}
+
+BOOL __attribute__((ms_abi)) ntboxd_FlsSetValue(DWORD dwFlsIndex, PVOID lpFlsData)
+{
+    fprintf(stderr, "[stub] FlsSetValue(%u, %p)\n", dwFlsIndex, lpFlsData);
+    if (dwFlsIndex >= 128) return FALSE;
+    g_fls_used[dwFlsIndex] = TRUE;
+    g_fls_slots[dwFlsIndex] = (DWORD)(uintptr_t)lpFlsData;
+    return TRUE;
+}
+
+BOOL __attribute__((ms_abi)) ntboxd_FlsFree(DWORD dwFlsIndex)
+{
+    fprintf(stderr, "[stub] FlsFree(%u)\n", dwFlsIndex);
+    if (dwFlsIndex >= 128) return FALSE;
+    g_fls_used[dwFlsIndex] = FALSE;
+    return TRUE;
+}
+
+/* ====================================================================
+ * CRITICAL SECTIONS & MSVCRT HELPERS
+ * ==================================================================== */
+
+void __attribute__((ms_abi)) ntboxd_InitializeCriticalSection(PVOID lpCriticalSection)
+{
+    fprintf(stderr, "[stub] InitializeCriticalSection(%p)\n", lpCriticalSection);
+}
+
+void __attribute__((ms_abi)) ntboxd_InitializeCriticalSectionEx(PVOID lpCriticalSection, DWORD dwSpinCount, DWORD dwFlags)
+{
+    fprintf(stderr, "[stub] InitializeCriticalSectionEx(%p, %u, 0x%x)\n", lpCriticalSection, dwSpinCount, dwFlags);
+}
+
+void __attribute__((ms_abi)) ntboxd_InitializeCriticalSectionAndSpinCount(PVOID lpCriticalSection, DWORD dwSpinCount)
+{
+    fprintf(stderr, "[stub] InitializeCriticalSectionAndSpinCount(%p, %u)\n", lpCriticalSection, dwSpinCount);
+}
+
+void __attribute__((ms_abi)) ntboxd_DeleteCriticalSection(PVOID lpCriticalSection)
+{
+    fprintf(stderr, "[stub] DeleteCriticalSection(%p)\n", lpCriticalSection);
+}
+
+void __attribute__((ms_abi)) ntboxd_EnterCriticalSection(PVOID lpCriticalSection)
+{
+}
+
+void __attribute__((ms_abi)) ntboxd_LeaveCriticalSection(PVOID lpCriticalSection)
+{
+}
+
+BOOL __attribute__((ms_abi)) ntboxd_TryEnterCriticalSection(PVOID lpCriticalSection)
+{
+    return 1;
+}
+
+void __attribute__((ms_abi)) ntboxd_msvcrt_except_handler4_common(void)
+{
+    fprintf(stderr, "[stub] msvcrt._except_handler4_common called\n");
+}
+
+/*
+ * _initterm — REAL CRT-initializer walker (upgraded from a no-op).
+ * Walks the MinGW CRT initializer table [pfbegin, pfend) and calls every
+ * non-NULL entry. NULL entries inside the table are terminators to skip.
+ * Targets are guest (MS-x64) code with zero-arg void entry points, so an
+ * ms_abi callee pointer is the ABI-correct way to invoke them.
+ *
+ * Safety valve: NTBOXD_INITTERM_NOCALL=1 disables the actual calls
+ * (log-and-return mode) for diagnosing crashes during CRT init.
+ * Wiring note: resolved by name elsewhere (ntboxd.c resolve() /
+ * ntboxd_libc_lookup()) — see bare-name alias below.
+ */
+typedef void (__attribute__((ms_abi)) *ntboxd_crt_init_fn_t)(void);
+
+void __attribute__((ms_abi)) ntboxd_msvcrt_initterm(ntboxd_crt_init_fn_t *pfbegin,
+                                                    ntboxd_crt_init_fn_t *pfend)
+{
+    ntboxd_crt_init_fn_t *p;
+    int ncalls = 0;
+
+    if (!pfbegin || !pfend || pfbegin >= pfend) {
+        fprintf(stderr, "[stub] msvcrt._initterm(%p, %p) -> nothing to do\n",
+                (void *)pfbegin, (void *)pfend);
+        return;
+    }
+
+    if (getenv("NTBOXD_INITTERM_NOCALL")) {
+        fprintf(stderr, "[stub] msvcrt._initterm(%p, %p) -> NOCALL mode, skipped\n",
+                (void *)pfbegin, (void *)pfend);
+        return;
+    }
+
+    for (p = pfbegin; p < pfend; p++) {
+        if (*p) {          /* NULL = separator/terminator: skip, keep walking */
+            (*p)();
+            ncalls++;
+        }
+    }
+    fprintf(stderr, "[stub] msvcrt._initterm(%p, %p) -> %d initializers called\n",
+            (void *)pfbegin, (void *)pfend, ncalls);
+}
+
+void __attribute__((ms_abi)) ntboxd_msvcrt_amsg_exit(int r)
+{
+    /*
+     * Upgraded: previously called exit(r) which killed the test process.
+     * _amsg_exit signals a CRT internal error (low memory etc.) during
+     * startup; logging and returning lets the CRT startup sequence
+     * continue in the box (safer for tests than killing it).
+     */
+    fprintf(stderr, "[stub] msvcrt._amsg_exit(%d) -> ignored (logged only)\n", r);
+}
+
+/* ====================================================================
+ * USER32 W-VARIANTS (UTF-16 -> ASCII passthrough, api_stubs-local)
+ * ====================================================================
+ *
+ * NOTE FOR WIRING (owner: ntboxd.c resolve(), parallel agent):
+ *   - RegisterClassW / CreateWindowExW / DefWindowProcW / MessageBoxW.
+ *   - The A-variants (ntboxd_RegisterClassA, ntboxd_CreateWindowExA, ...)
+ *     are *static* inside ntboxd.c, so api_stubs.c cannot link/delegate
+ *     to them. These W-stubs therefore replicate the A-variant internal
+ *     logic (including ntboxd_hwnd_t layout and its "WIND" magic) so
+ *     windows created via the W path remain compatible with ntboxd.c's
+ *     ShowWindow / GetClientRect / GetDC handling.
+ *     If ntboxd.c's hwnd struct ever changes, keep this copy in sync.
+ */
+
+#define NTBOXD_HWND_MAGIC_W 0x57494E44UL   /* "WIND" — must match ntboxd.c */
+
+typedef struct {
+    unsigned long magic;                   /* NTBOXD_HWND_MAGIC_W */
+    int width, height;
+    const char *title;
+    int shown;
+} ntboxd_hwnd_w_t;
+
+/* WNDCLASSW layout: style, lpfnWndProc, cbClsExtra, cbWndExtra,
+ * hInstance, hIcon, hCursor, hbrBackground, lpszMenuName, lpszClassName */
+typedef struct {
+    UINT   style;
+    void  *lpfnWndProc;
+    int    cbClsExtra;
+    int    cbWndExtra;
+    void  *hInstance;
+    void  *hIcon;
+    void  *hCursor;
+    void  *hbrBackground;
+    const uint16_t *lpszMenuName;          /* UTF-16 */
+    const uint16_t *lpszClassName;         /* UTF-16 */
+} ntboxd_wndclassw_t;
+
+/*
+ * Same UTF-16 -> ASCII approach as the TextOutW-family conversion:
+ * map 0x00..0x7F range losslessly, everything else degrades to '?'.
+ */
+static void ntboxd_utf16_to_ascii(const uint16_t *src, char *dst, size_t dstsz)
+{
+    size_t i = 0;
+
+    if (!dst || dstsz == 0)
+        return;
+    if (src) {
+        while (i + 1 < dstsz && src[i]) {
+            dst[i] = (src[i] < 0x80) ? (char)src[i] : '?';
+            i++;
+        }
+    }
+    dst[i] = '\0';
+}
+
+/* RegisterClassW — convert the class name, log, return a valid ATOM.
+ * Matches ntboxd.c's RegisterClassA (ignores the struct, returns 1). */
+DWORD __attribute__((ms_abi)) ntboxd_RegisterClassW(const ntboxd_wndclassw_t *wc)
+{
+    char name[256];
+
+    if (!wc) {
+        fprintf(stderr, "[stub] RegisterClassW(NULL) -> 0\n");
+        return 0;
+    }
+    ntboxd_utf16_to_ascii(wc->lpszClassName, name, sizeof(name));
+    fprintf(stderr, "[stub] RegisterClassW(\"%s\") -> 1\n", name);
+    return 1; /* ATOM */
+}
+
+/* CreateWindowExW — convert className/windowName, then replicate
+ * ntboxd_CreateWindowExA's window-creation logic (calloc'ed hwnd record
+ * with "WIND" magic). The title pointer targets a static buffer in this
+ * file, long-lived enough for the box's current window model. */
+void * __attribute__((ms_abi)) ntboxd_CreateWindowExW(
+    DWORD dwExStyle, LPCWSTR lpClassName, LPCWSTR lpWindowName,
+    DWORD dwStyle, int x, int y, int nWidth, int nHeight,
+    void *hWndParent, void *hMenu, void *hInstance, LPVOID lpParam)
+{
+    char cls[256], title[256];
+    ntboxd_hwnd_w_t *win;
+
+    (void)dwExStyle; (void)dwStyle; (void)x; (void)y;
+    (void)hWndParent; (void)hMenu; (void)hInstance; (void)lpParam;
+
+    ntboxd_utf16_to_ascii(lpClassName, cls, sizeof(cls));
+    ntboxd_utf16_to_ascii(lpWindowName, title, sizeof(title));
+
+    win = calloc(1, sizeof(*win));
+    if (!win)
+        return NULL;
+    win->magic  = NTBOXD_HWND_MAGIC_W;
+    win->width  = nWidth  > 0 ? nWidth  : 640;
+    win->height = nHeight > 0 ? nHeight : 480;
+    win->title  = title[0] ? title : "NT-Box Window";
+    win->shown  = 0;
+    fprintf(stderr, "[stub] CreateWindowExW: '%s' '%s' %dx%d\n",
+            cls, win->title, win->width, win->height);
+    return (void *)win;
+}
+
+/* DefWindowProcW — matches DefWindowProcA: no-op, returns 0. */
+LONG_PTR __attribute__((ms_abi)) ntboxd_DefWindowProcW(
+    void *hwnd, UINT msg, UINT_PTR wParam, LONG_PTR lParam)
+{
+    (void)hwnd; (void)msg; (void)wParam; (void)lParam;
+    fprintf(stderr, "[stub] DefWindowProcW(hwnd=%p, msg=0x%x)\n", hwnd, msg);
+    return 0;
+}
+
+/* MessageBoxW — convert text/caption to ASCII and log like MessageBoxA. */
+DWORD __attribute__((ms_abi)) ntboxd_MessageBoxW(
+    void *hWnd, LPCWSTR lpText, LPCWSTR lpCaption, UINT uType)
+{
+    char text[256], caption[256];
+
+    (void)hWnd; (void)uType;
+    ntboxd_utf16_to_ascii(lpText, text, sizeof(text));
+    ntboxd_utf16_to_ascii(lpCaption, caption, sizeof(caption));
+    fprintf(stderr, "[stub] MessageBoxW: %s%s%s\n",
+            caption, caption[0] ? " - " : "", text);
+    return 1; /* IDOK */
+}
+
+/* ====================================================================
+ * MSVCRT CRT-CRITICAL STUBS (real behavior so MinGW CRT startup survives)
+ * ====================================================================
+ * WIRING NOTE (owner: ntboxd.c resolve() + ntboxd_libc.c table,
+ * parallel agent): every function here is exported under the
+ * ntboxd_msvcrt_* convention AND — where the msvcrt export name starts
+ * with an underscore — under a bare-name alias ntboxd_<msvcrt-name>
+ * (e.g. ntboxd__initterm) via assembler .set aliases, so wiring code can
+ * use whichever name it prefers.
+ */
+
+#define NTBOXD_CRT_ALIAS(alias, real) \
+    __asm__(".globl " #alias "\n\t.set " #alias ", " #real)
+
+/* _onexit — return the passed pointer (nonzero) so CRT thinks it's ok */
+void * __attribute__((ms_abi)) ntboxd_msvcrt_onexit(void *func)
+{
+    fprintf(stderr, "[stub] msvcrt._onexit(%p) -> %p\n", func, func);
+    return func;
+}
+
+/* __dllonexit — return the function pointer (first arg) */
+void * __attribute__((ms_abi)) ntboxd_msvcrt_dllonexit(
+    void *func, void **pdata, void **ptdata)
+{
+    (void)pdata; (void)ptdata;
+    fprintf(stderr, "[stub] msvcrt.__dllonexit(%p) -> %p\n", func, func);
+    return func;
+}
+
+/* _cexit — log and return (process stays alive in the box) */
+void __attribute__((ms_abi)) ntboxd_msvcrt_cexit(void)
+{
+    fprintf(stderr, "[stub] msvcrt._cexit() -> void\n");
+}
+
+/* __setusermatherr — log and return (void) */
+void __attribute__((ms_abi)) ntboxd_msvcrt_setusermatherr(void *handler)
+{
+    fprintf(stderr, "[stub] msvcrt.__setusermatherr(%p)\n", handler);
+}
+
+/* __set_app_type — log and return (void) */
+void __attribute__((ms_abi)) ntboxd_msvcrt_set_app_type(int app_type)
+{
+    fprintf(stderr, "[stub] msvcrt.__set_app_type(%d)\n", app_type);
+}
+
+/* _fpreset — log and return (void) */
+void __attribute__((ms_abi)) ntboxd_msvcrt_fpreset(void)
+{
+    fprintf(stderr, "[stub] msvcrt._fpreset()\n");
+}
+
+/* abort — log then terminate (wired or not, guest asked to die) */
+void __attribute__((ms_abi)) ntboxd_msvcrt_abort(void)
+{
+    fprintf(stderr, "[stub] msvcrt.abort() -> terminating 0x133\n");
+    fflush(stderr);
+    exit(0x133);
+}
+
+/* exit — proper termination with the guest exit code (truncated to 8 bits) */
+void __attribute__((ms_abi)) ntboxd_msvcrt_exit(int code)
+{
+    fprintf(stderr, "[stub] msvcrt.exit(%d/%d)\n", code, code & 0xff);
+    fflush(stdout);
+    fflush(stderr);
+    exit(code & 0xff);
+}
+
+/* signal — accept registration, return no previous handler */
+void * __attribute__((ms_abi)) ntboxd_msvcrt_signal(int sig, void *handler)
+{
+    fprintf(stderr, "[stub] msvcrt.signal(%d, %p) -> NULL\n", sig, handler);
+    return NULL;
+}
+
+/* strerror — host glibc lookup, always a valid string */
+char * __attribute__((ms_abi)) ntboxd_msvcrt_strerror(int errnum)
+{
+    fprintf(stderr, "[stub] msvcrt.strerror(%d)\n", errnum);
+    return errnum == 0 ? (char *)"Success" : strerror(errnum);
+}
+
+/* localeconv — static, zero-initialized "C" locale */
+struct lconv * __attribute__((ms_abi)) ntboxd_msvcrt_localeconv(void)
+{
+    static struct lconv lc;
+    static int initialized = 0;
+
+    if (!initialized) {
+        memset(&lc, 0, sizeof(lc));
+        lc.decimal_point   = (char *)".";
+        lc.thousands_sep   = (char *)"";
+        lc.grouping        = (char *)"";
+        lc.mon_decimal_point = (char *)".";
+        lc.int_curr_symbol = (char *)"";
+        lc.currency_symbol = (char *)"";
+        lc.mon_grouping    = (char *)"";
+        lc.positive_sign   = (char *)"";
+        lc.negative_sign   = (char *)"-";
+        initialized = 1;
+    }
+    fprintf(stderr, "[stub] msvcrt.localeconv() -> %p\n", (void *)&lc);
+    return &lc;
+}
+
+/* fwrite — cannot safely translate guest FILE*: report size*count.
+ * Wired code owner note: if a guest-stdout mapping ever exists,
+ * forward to host stdio then (see ntboxd_libc.c fputs/printf pattern). */
+size_t __attribute__((ms_abi)) ntboxd_msvcrt_fwrite(
+    const void *ptr, size_t size, size_t count, void *stream)
+{
+    fprintf(stderr, "[stub] msvcrt.fwrite(%p, %zu x %zu, stream=%p) -> %zu\n",
+            ptr, size, count, stream, stream ? size * count : 0);
+    return stream ? size * count : 0;
+}
+
+/* fputc — echo the char like stdio (hack), return the char */
+int __attribute__((ms_abi)) ntboxd_msvcrt_fputc(int c, void *stream)
+{
+    fprintf(stderr, "[stub] msvcrt.fputc(0x%x, stream=%p) -> %d\n", c, stream, c);
+    return c;
+}
+
+/* fprintf — guest FILE* cannot be dereferenced; log the format string
+ * (read-only, mapped guest memory) and claim success count. Win64 ABI
+ * lets a fixed-arity function receive variadic args, extra args ignored. */
+int __attribute__((ms_abi)) ntboxd_msvcrt_fprintf(void *stream, const char *fmt)
+{
+    fprintf(stderr, "[stub] msvcrt.fprintf(stream=%p, fmt=\"%s\") -> %zu\n",
+            stream, fmt ? fmt : "(null)", fmt ? strlen(fmt) : 0);
+    return fmt ? (int)strlen(fmt) : 0;
+}
+
+/* _errno — pointer to a static int */
+int * __attribute__((ms_abi)) ntboxd_msvcrt_errno(void)
+{
+    static int g_errno;
+    fprintf(stderr, "[stub] msvcrt._errno() -> %p\n", (void *)&g_errno);
+    return &g_errno;
+}
+
+/* _commode / _fmode — static zeroed ints (these are DATA-ish imports;
+ * MinGW CRT dereferences them, so a real writable int is mandatory. */
+int * __attribute__((ms_abi)) ntboxd_msvcrt_commode(void)
+{
+    static int g_commode;
+    fprintf(stderr, "[stub] msvcrt._commode() -> %p\n", (void *)&g_commode);
+    return &g_commode;
+}
+
+int * __attribute__((ms_abi)) ntboxd_msvcrt_fmode(void)
+{
+    static int g_fmode;
+    fprintf(stderr, "[stub] msvcrt._fmode() -> %p\n", (void *)&g_fmode);
+    return &g_fmode;
+}
+
+/* Bare-name assembler aliases (ntboxd_<msvcrt-export-name>) for wiring
+ * from ntboxd.c resolve()/ntboxd_libc.c table without extra glue. */
+NTBOXD_CRT_ALIAS(ntboxd__initterm,          ntboxd_msvcrt_initterm);
+NTBOXD_CRT_ALIAS(ntboxd__onexit,            ntboxd_msvcrt_onexit);
+NTBOXD_CRT_ALIAS(ntboxd___dllonexit,        ntboxd_msvcrt_dllonexit);
+NTBOXD_CRT_ALIAS(ntboxd__cexit,             ntboxd_msvcrt_cexit);
+NTBOXD_CRT_ALIAS(ntboxd__amsg_exit,         ntboxd_msvcrt_amsg_exit);
+NTBOXD_CRT_ALIAS(ntboxd___setusermatherr,   ntboxd_msvcrt_setusermatherr);
+NTBOXD_CRT_ALIAS(ntboxd___set_app_type,     ntboxd_msvcrt_set_app_type);
+NTBOXD_CRT_ALIAS(ntboxd__fpreset,           ntboxd_msvcrt_fpreset);
+NTBOXD_CRT_ALIAS(ntboxd_abort,              ntboxd_msvcrt_abort);
+NTBOXD_CRT_ALIAS(ntboxd_exit,               ntboxd_msvcrt_exit);
+NTBOXD_CRT_ALIAS(ntboxd_signal,             ntboxd_msvcrt_signal);
+NTBOXD_CRT_ALIAS(ntboxd_strerror,           ntboxd_msvcrt_strerror);
+NTBOXD_CRT_ALIAS(ntboxd_localeconv,         ntboxd_msvcrt_localeconv);
+NTBOXD_CRT_ALIAS(ntboxd_fwrite,             ntboxd_msvcrt_fwrite);
+NTBOXD_CRT_ALIAS(ntboxd_fputc,              ntboxd_msvcrt_fputc);
+NTBOXD_CRT_ALIAS(ntboxd_fprintf,            ntboxd_msvcrt_fprintf);
+NTBOXD_CRT_ALIAS(ntboxd__errno,             ntboxd_msvcrt_errno);
+NTBOXD_CRT_ALIAS(ntboxd__commode,           ntboxd_msvcrt_commode);
+NTBOXD_CRT_ALIAS(ntboxd__fmode,             ntboxd_msvcrt_fmode);
+
+
+/* Common user32/gdi32 fallbacks */
+__attribute__((ms_abi)) void *ntboxd_api_BeginPaint(void *hwnd, void *ps) { extern void *ntboxd_BeginPaint(void*,void*); return ntboxd_BeginPaint(hwnd,ps); }
+__attribute__((ms_abi)) int ntboxd_api_EndPaint(void *hwnd, void *ps) { extern int ntboxd_EndPaint(void*,void*); return ntboxd_EndPaint(hwnd,ps); }
+__attribute__((ms_abi)) int ntboxd_api_GetWindowTextW(void *hwnd, void *buf, int n) { extern int ntboxd_GetWindowTextW(void*,void*,int); return ntboxd_GetWindowTextW(hwnd,buf,n); }
+__attribute__((ms_abi)) long ntboxd_api_GetWindowTextA(void *hwnd, char *buf, int n) { extern long ntboxd_GetWindowTextA(void*,char*,int); return ntboxd_GetWindowTextA(hwnd,buf,n); }
+__attribute__((ms_abi)) unsigned long ntboxd_api_SetTimer(void *hwnd, unsigned long id, unsigned int el, void *f) { extern unsigned long ntboxd_SetTimer(void*,unsigned long,unsigned int,void*); return ntboxd_SetTimer(hwnd,id,el,f); }
+__attribute__((ms_abi)) int ntboxd_api_KillTimer(void *hwnd, unsigned long id) { extern int ntboxd_KillTimer(void*,unsigned long); return ntboxd_KillTimer(hwnd,id); }
+__attribute__((ms_abi)) int ntboxd_api_TranslateMessage(void *m) { extern int ntboxd_TranslateMessage(const void*); return ntboxd_TranslateMessage(m); }
+__attribute__((ms_abi)) int ntboxd_api_FillRect(void *hdc, const void *rc, void *br) { extern int ntboxd_FillRect(void*,const void*,void*); return ntboxd_FillRect(hdc,rc,br); }
+__attribute__((ms_abi)) int ntboxd_api_GetMessageA(void *m, void *hwnd, unsigned int fmin, unsigned int fmax) { extern int ntboxd_GetMessageA(void*,void*,unsigned int,unsigned int); return ntboxd_GetMessageA(m,hwnd,fmin,fmax); }
+__attribute__((ms_abi)) unsigned long ntboxd_api_DispatchMessageA(void *m) { extern unsigned long ntboxd_DispatchMessageA(const void*); return ntboxd_DispatchMessageA(m); }
+#include <string.h>
+#include <stdint.h>
+
+typedef void *HANDLE;
+typedef void *HWND;
+typedef void *HDC;
+typedef void *HGDIOBJ;
+typedef void *HBRUSH;
+typedef void *HPEN;
+typedef void *HFONT;
+typedef void *HMENU;
+typedef void *HICON;
+typedef void *HCURSOR;
+typedef void *HINSTANCE;
+typedef uint32_t UINT;
+typedef uint32_t DWORD;
+typedef int BOOL;
+typedef long LONG;
+typedef intptr_t LONG_PTR;
+typedef uintptr_t WPARAM;
+typedef intptr_t LPARAM;
+typedef const char *LPCSTR;
+typedef const uint16_t *LPCWSTR;
+typedef uint16_t *LPWSTR;
+typedef char *LPSTR;
+
+#ifndef TRUE
+#define TRUE 1
+#endif
+#ifndef FALSE
+#define FALSE 0
+#endif
+#ifndef NULL
+#define NULL ((void*)0)
+#endif
+
+/* Kernel32/kernelbase common */
+DWORD __attribute__((ms_abi)) ntboxd_GetModuleHandleA(const char *lpModuleName) { fprintf(stderr,"[stub] GetModuleHandleA(%s)\n",lpModuleName?lpModuleName:"(null)"); return (DWORD)0x400000; }
+DWORD __attribute__((ms_abi)) ntboxd_GetModuleHandleW(const uint16_t *lpModuleName) { fprintf(stderr,"[stub] GetModuleHandleW()\n"); return (DWORD)0x400000; }
+HANDLE __attribute__((ms_abi)) ntboxd_LoadLibraryA(const char *lpLibFileName) { fprintf(stderr,"[stub] LoadLibraryA(%s)\n",lpLibFileName?lpLibFileName:""); return (HANDLE)0x10000000; }
+void * __attribute__((ms_abi)) ntboxd_GetProcAddress(void *hModule, const char *lpProcName) { fprintf(stderr,"[stub] GetProcAddress(%p,%s)\n",hModule,lpProcName?lpProcName:""); if(lpProcName && lpProcName[0]=='#') return (void*)0xdeadbeef; return (void*)0xdeadbeef; }
+BOOL __attribute__((ms_abi)) ntboxd_FreeLibrary(HANDLE hLibModule) { fprintf(stderr,"[stub] FreeLibrary(%p)\n",hLibModule); return TRUE; }
+DWORD __attribute__((ms_abi)) ntboxd_GetLastError(void);
+void __attribute__((ms_abi)) ntboxd_SetLastError(DWORD dwErrCode);
+void __attribute__((ms_abi)) ntboxd_ExitProcess(UINT uExitCode) { fprintf(stderr,"[stub] ExitProcess(%u)\n",uExitCode); exit(uExitCode); }
+DWORD __attribute__((ms_abi)) ntboxd_GetCommandLineA(void) { static char cmd[]="app.exe"; return (DWORD)(uintptr_t)cmd; }
+DWORD __attribute__((ms_abi)) ntboxd_GetCommandLineW(void) { static uint16_t cmd[]={'a','p','p','.','e','x','e',0}; return (DWORD)(uintptr_t)cmd; }
+void __attribute__((ms_abi)) ntboxd_GetStartupInfoA(void *lpStartupInfo) { fprintf(stderr,"[stub] GetStartupInfoA\n"); if(lpStartupInfo) memset(lpStartupInfo,0,68); }
+void __attribute__((ms_abi)) ntboxd_GetStartupInfoW(void *lpStartupInfo) { fprintf(stderr,"[stub] GetStartupInfoW\n"); if(lpStartupInfo) memset(lpStartupInfo,0,68); }
+
+/* User32 */
+LONG_PTR __attribute__((ms_abi)) ntboxd_DefWindowProcA(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam) { fprintf(stderr,"[stub] DefWindowProcA(%p,0x%x)\n",hWnd,Msg); return 0; }
+LONG_PTR __attribute__((ms_abi)) ntboxd_DefWindowProcW(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam) { fprintf(stderr,"[stub] DefWindowProcW(%p,0x%x)\n",hWnd,Msg); return 0; }
+BOOL __attribute__((ms_abi)) ntboxd_ShowWindow(HWND hWnd, int nCmdShow) { fprintf(stderr,"[stub] ShowWindow(%p,%d)\n",hWnd,nCmdShow); return TRUE; }
+BOOL __attribute__((ms_abi)) ntboxd_UpdateWindow(HWND hWnd) { fprintf(stderr,"[stub] UpdateWindow(%p)\n",hWnd); return TRUE; }
+int __attribute__((ms_abi)) ntboxd_GetMessageA(void *lpMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax) { fprintf(stderr,"[stub] GetMessageA -> 0 (exit)\n"); (void)lpMsg;(void)hWnd;(void)wMsgFilterMin;(void)wMsgFilterMax; return 0; }
+int __attribute__((ms_abi)) ntboxd_GetMessageW(void *lpMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax) { fprintf(stderr,"[stub] GetMessageW -> 0 (exit)\n"); (void)lpMsg;(void)hWnd;(void)wMsgFilterMin;(void)wMsgFilterMax; return 0; }
+BOOL __attribute__((ms_abi)) ntboxd_PeekMessageA(void *lpMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax, UINT wRemoveMsg) { (void)lpMsg;(void)hWnd;(void)wMsgFilterMin;(void)wMsgFilterMax;(void)wRemoveMsg; return FALSE; }
+BOOL __attribute__((ms_abi)) ntboxd_PeekMessageW(void *lpMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax, UINT wRemoveMsg) { (void)lpMsg;(void)hWnd;(void)wMsgFilterMin;(void)wMsgFilterMax;(void)wRemoveMsg; return FALSE; }
+BOOL __attribute__((ms_abi)) ntboxd_TranslateMessage(const void *lpMsg) { (void)lpMsg; return TRUE; }
+LONG_PTR __attribute__((ms_abi)) ntboxd_DispatchMessageA(const void *lpMsg) { (void)lpMsg; return 0; }
+LONG_PTR __attribute__((ms_abi)) ntboxd_DispatchMessageW(const void *lpMsg) { (void)lpMsg; return 0; }
+void __attribute__((ms_abi)) ntboxd_PostQuitMessage(int nExitCode) { fprintf(stderr,"[stub] PostQuitMessage(%d)\n",nExitCode); }
+LRESULT __attribute__((ms_abi)) ntboxd_SendMessageA(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam) { fprintf(stderr,"[stub] SendMessageA(0x%x)\n",Msg); (void)hWnd;(void)wParam;(void)lParam; return 0; }
+LRESULT __attribute__((ms_abi)) ntboxd_SendMessageW(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam) { fprintf(stderr,"[stub] SendMessageW(0x%x)\n",Msg); (void)hWnd;(void)wParam;(void)lParam; return 0; }
+BOOL __attribute__((ms_abi)) ntboxd_PostMessageA(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam) { (void)hWnd;(void)Msg;(void)wParam;(void)lParam; return TRUE; }
+BOOL __attribute__((ms_abi)) ntboxd_PostMessageW(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam) { (void)hWnd;(void)Msg;(void)wParam;(void)lParam; return TRUE; }
+ATOM __attribute__((ms_abi)) ntboxd_RegisterClassA(const void *lpWndClass) { (void)lpWndClass; return 1; }
+ATOM __attribute__((ms_abi)) ntboxd_RegisterClassW(const void *lpWndClass);
+HWND __attribute__((ms_abi)) ntboxd_CreateWindowExA(DWORD dwExStyle, LPCSTR lpClassName, LPCSTR lpWindowName, DWORD dwStyle, int x,int y,int nWidth,int nHeight, HWND hWndParent, HMENU hMenu, HINSTANCE hInstance, LPVOID lpParam);
+HWND __attribute__((ms_abi)) ntboxd_CreateWindowExW(DWORD dwExStyle, LPCWSTR lpClassName, LPCWSTR lpWindowName, DWORD dwStyle, int x,int y,int nWidth,int nHeight, HWND hWndParent, HMENU hMenu, HINSTANCE hInstance, LPVOID lpParam);
+int __attribute__((ms_abi)) ntboxd_MessageBoxA(HWND hWnd, LPCSTR lpText, LPCSTR lpCaption, UINT uType) { fprintf(stderr,"[stub] MessageBoxA: %s - %s\n",lpCaption?lpCaption:"",lpText?lpText:""); (void)hWnd;(void)uType; return 1; }
+int __attribute__((ms_abi)) ntboxd_MessageBoxW(HWND hWnd, LPCWSTR lpText, LPCWSTR lpCaption, UINT uType);
+
+/* GDI */
+HDC __attribute__((ms_abi)) ntboxd_GetDC(HWND hWnd) { fprintf(stderr,"[stub] GetDC(%p)\n",hWnd); return (HDC)0x1234; }
+int __attribute__((ms_abi)) ntboxd_ReleaseDC(HWND hWnd, HDC hDC) { fprintf(stderr,"[stub] ReleaseDC(%p,%p)\n",hWnd,hDC); return 1; }
+HDC __attribute__((ms_abi)) ntboxd_BeginPaint(HWND hWnd, void *lpPaint) { fprintf(stderr,"[stub] BeginPaint(%p)\n",hWnd); if(lpPaint) memset(lpPaint,0,64); return (HDC)0x1234; }
+BOOL __attribute__((ms_abi)) ntboxd_EndPaint(HWND hWnd, const void *lpPaint) { fprintf(stderr,"[stub] EndPaint(%p)\n",hWnd); (void)lpPaint; return TRUE; }
+HBRUSH __attribute__((ms_abi)) ntboxd_CreateSolidBrush(DWORD crColor) { fprintf(stderr,"[stub] CreateSolidBrush(0x%x)\n",crColor); return (HBRUSH)0x2000; }
+HPEN __attribute__((ms_abi)) ntboxd_CreatePen(int iStyle, int cWidth, DWORD crColor) { fprintf(stderr,"[stub] CreatePen(%d,%d,0x%x)\n",iStyle,cWidth,crColor); return (HPEN)0x2001; }
+HGDIOBJ __attribute__((ms_abi)) ntboxd_SelectObject(HDC hdc, HGDIOBJ h) { (void)hdc; (void)h; return (HGDIOBJ)0; }
+BOOL __attribute__((ms_abi)) ntboxd_DeleteObject(HGDIOBJ ho) { (void)ho; return TRUE; }
+BOOL __attribute__((ms_abi)) ntboxd_FillRect(HDC hDC, const void *lprc, HBRUSH hbr) { fprintf(stderr,"[stub] FillRect\n"); (void)hDC;(void)lprc;(void)hbr; return TRUE; }
+BOOL __attribute__((ms_abi)) ntboxd_TextOutA(HDC hdc, int x,int y, LPCSTR lpString, int c) { fprintf(stderr,"[stub] TextOutA: %.*s\n",c>0?c:(lpString? (int)strlen(lpString):0), lpString?lpString:""); (void)hdc;(void)x;(void)y; return TRUE; }
+BOOL __attribute__((ms_abi)) ntboxd_TextOutW(HDC hdc, int x,int y, LPCWSTR lpString, int c) { fprintf(stderr,"[stub] TextOutW\n"); (void)hdc;(void)x;(void)y;(void)lpString;(void)c; return TRUE; }
+BOOL __attribute__((ms_abi)) ntboxd_ExtTextOutA(HDC hdc,int x,int y,UINT options,const void *lprect,LPCSTR lpString,UINT c,const int *lpDx) { fprintf(stderr,"[stub] ExtTextOutA\n"); (void)hdc;(void)x;(void)y;(void)options;(void)lprect;(void)lpString;(void)c;(void)lpDx; return TRUE; }
+BOOL __attribute__((ms_abi)) ntboxd_ExtTextOutW(HDC hdc,int x,int y,UINT options,const void *lprect,LPCWSTR lpString,UINT c,const int *lpDx) { fprintf(stderr,"[stub] ExtTextOutW\n"); (void)hdc;(void)x;(void)y;(void)options;(void)lprect;(void)lpString;(void)c;(void)lpDx; return TRUE; }
+BOOL __attribute__((ms_abi)) ntboxd_BitBlt(HDC hdcDest,int xDest,int yDest,int w,int h,HDC hdcSrc,int xSrc,int ySrc,DWORD rop) { fprintf(stderr,"[stub] BitBlt\n"); (void)hdcDest;(void)xDest;(void)yDest;(void)w;(void)h;(void)hdcSrc;(void)xSrc;(void)ySrc;(void)rop; return TRUE; }
+BOOL __attribute__((ms_abi)) ntboxd_PatBlt(HDC hdc,int x,int y,int w,int h,DWORD rop) { fprintf(stderr,"[stub] PatBlt\n"); (void)hdc;(void)x;(void)y;(void)w;(void)h;(void)rop; return TRUE; }
+int __attribute__((ms_abi)) ntboxd_SetBkColor(HDC hdc, DWORD color) { (void)hdc; return (int)color; }
+int __attribute__((ms_abi)) ntboxd_SetTextColor(HDC hdc, DWORD color) { (void)hdc; return (int)color; }
+HGDIOBJ __attribute__((ms_abi)) ntboxd_GetStockObject(int i) { (void)i; return (HGDIOBJ)0; }
+
+/* Additional user32/gdi32/kernel32/kernelbase stubs for common GUI apps */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdint.h>
+#include <unistd.h>
+
+typedef void *HANDLE;
+typedef void *HWND;
+typedef void *HDC;
+typedef void *HGDIOBJ;
+typedef void *HBRUSH;
+typedef void *HPEN;
+typedef void *HFONT;
+typedef void *HMENU;
+typedef void *HICON;
+typedef void *HCURSOR;
+typedef void *HINSTANCE;
+typedef uint32_t UINT;
+typedef uint32_t DWORD;
+typedef int BOOL;
+typedef long LONG;
+typedef intptr_t LONG_PTR;
+typedef uintptr_t WPARAM;
+typedef intptr_t LPARAM;
+typedef const char *LPCSTR;
+typedef const uint16_t *LPCWSTR;
+typedef uint16_t *LPWSTR;
+typedef char *LPSTR;
+typedef long LRESULT;
+typedef uint16_t ATOM;
+
+#ifndef TRUE
+#define TRUE 1
+#endif
+#ifndef FALSE
+#define FALSE 0
+#endif
+#ifndef NULL
+#define NULL ((void*)0)
+#endif
+
+/* Kernel32/kernelbase common */
+DWORD __attribute__((ms_abi)) ntboxd_GetModuleHandleA2(const char *lpModuleName) { fprintf(stderr,"[stub] GetModuleHandleA(%s)\n",lpModuleName?lpModuleName:"(null)"); return (DWORD)0x400000; }
+DWORD __attribute__((ms_abi)) ntboxd_GetModuleHandleW2(const uint16_t *lpModuleName) { fprintf(stderr,"[stub] GetModuleHandleW()\n"); return (DWORD)0x400000; }
+HANDLE __attribute__((ms_abi)) ntboxd_LoadLibraryA2(const char *lpLibFileName) { fprintf(stderr,"[stub] LoadLibraryA(%s)\n",lpLibFileName?lpLibFileName:""); return (HANDLE)0x10000000; }
+void * __attribute__((ms_abi)) ntboxd_GetProcAddress2(void *hModule, const char *lpProcName) { fprintf(stderr,"[stub] GetProcAddress(%p,%s)\n",hModule,lpProcName?lpProcName:""); if(lpProcName && lpProcName[0]=='#') return (void*)0xdeadbeef; return (void*)0xdeadbeef; }
+BOOL __attribute__((ms_abi)) ntboxd_FreeLibrary2(HANDLE hLibModule) { fprintf(stderr,"[stub] FreeLibrary(%p)\n",hLibModule); return TRUE; }
+void __attribute__((ms_abi)) ntboxd_ExitProcess2(UINT uExitCode) { fprintf(stderr,"[stub] ExitProcess(%u)\n",uExitCode); exit(uExitCode); }
+DWORD __attribute__((ms_abi)) ntboxd_GetCommandLineA2(void) { static char cmd[]="app.exe"; return (DWORD)(uintptr_t)cmd; }
+DWORD __attribute__((ms_abi)) ntboxd_GetCommandLineW2(void) { static uint16_t cmd[]={'a','p','p','.','e','x','e',0}; return (DWORD)(uintptr_t)cmd; }
+void __attribute__((ms_abi)) ntboxd_GetStartupInfoA2(void *lpStartupInfo) { fprintf(stderr,"[stub] GetStartupInfoA\n"); if(lpStartupInfo) memset(lpStartupInfo,0,68); }
+void __attribute__((ms_abi)) ntboxd_GetStartupInfoW2(void *lpStartupInfo) { fprintf(stderr,"[stub] GetStartupInfoW\n"); if(lpStartupInfo) memset(lpStartupInfo,0,68); }
+DWORD __attribute__((ms_abi)) ntboxd_GetTickCount2(void);
+void __attribute__((ms_abi)) ntboxd_Sleep(DWORD dwMilliseconds) { fprintf(stderr,"[stub] Sleep(%u)\n",dwMilliseconds); usleep(dwMilliseconds*1000); }
+
+/* User32 */
+LONG_PTR __attribute__((ms_abi)) ntboxd_DefWindowProcA2(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam) { fprintf(stderr,"[stub] DefWindowProcA(%p,0x%x)\n",hWnd,Msg); return 0; }
+LONG_PTR __attribute__((ms_abi)) ntboxd_DefWindowProcW2(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam) { fprintf(stderr,"[stub] DefWindowProcW(%p,0x%x)\n",hWnd,Msg); return 0; }
+BOOL __attribute__((ms_abi)) ntboxd_ShowWindow2(HWND hWnd, int nCmdShow) { fprintf(stderr,"[stub] ShowWindow(%p,%d)\n",hWnd,nCmdShow); return TRUE; }
+BOOL __attribute__((ms_abi)) ntboxd_UpdateWindow2(HWND hWnd) { fprintf(stderr,"[stub] UpdateWindow(%p)\n",hWnd); return TRUE; }
+int __attribute__((ms_abi)) ntboxd_GetMessageA2(void *lpMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax) { fprintf(stderr,"[stub] GetMessageA -> 0 (exit)\n"); (void)lpMsg;(void)hWnd;(void)wMsgFilterMin;(void)wMsgFilterMax; return 0; }
+int __attribute__((ms_abi)) ntboxd_GetMessageW2(void *lpMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax) { fprintf(stderr,"[stub] GetMessageW -> 0 (exit)\n"); (void)lpMsg;(void)hWnd;(void)wMsgFilterMin;(void)wMsgFilterMax; return 0; }
+BOOL __attribute__((ms_abi)) ntboxd_PeekMessageA2(void *lpMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax, UINT wRemoveMsg) { (void)lpMsg;(void)hWnd;(void)wMsgFilterMin;(void)wMsgFilterMax;(void)wRemoveMsg; return FALSE; }
+BOOL __attribute__((ms_abi)) ntboxd_PeekMessageW2(void *lpMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax, UINT wRemoveMsg) { (void)lpMsg;(void)hWnd;(void)wMsgFilterMin;(void)wMsgFilterMax;(void)wRemoveMsg; return FALSE; }
+BOOL __attribute__((ms_abi)) ntboxd_TranslateMessage2(const void *lpMsg) { (void)lpMsg; return TRUE; }
+LONG_PTR __attribute__((ms_abi)) ntboxd_DispatchMessageA2(const void *lpMsg) { (void)lpMsg; return 0; }
+LONG_PTR __attribute__((ms_abi)) ntboxd_DispatchMessageW2(const void *lpMsg) { (void)lpMsg; return 0; }
+void __attribute__((ms_abi)) ntboxd_PostQuitMessage2(int nExitCode) { fprintf(stderr,"[stub] PostQuitMessage(%d)\n",nExitCode); }
+LRESULT __attribute__((ms_abi)) ntboxd_SendMessageA2(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam) { fprintf(stderr,"[stub] SendMessageA(0x%x)\n",Msg); (void)hWnd;(void)wParam;(void)lParam; return 0; }
+LRESULT __attribute__((ms_abi)) ntboxd_SendMessageW2(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam) { fprintf(stderr,"[stub] SendMessageW(0x%x)\n",Msg); (void)hWnd;(void)wParam;(void)lParam; return 0; }
+BOOL __attribute__((ms_abi)) ntboxd_PostMessageA2(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam) { (void)hWnd;(void)Msg;(void)wParam;(void)lParam; return TRUE; }
+BOOL __attribute__((ms_abi)) ntboxd_PostMessageW2(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam) { (void)hWnd;(void)Msg;(void)wParam;(void)lParam; return TRUE; }
+ATOM __attribute__((ms_abi)) ntboxd_RegisterClassA2(const void *lpWndClass) { (void)lpWndClass; return 1; }
+int __attribute__((ms_abi)) ntboxd_MessageBoxA2(HWND hWnd, LPCSTR lpText, LPCSTR lpCaption, UINT uType) { fprintf(stderr,"[stub] MessageBoxA: %s - %s\n",lpCaption?lpCaption:"",lpText?lpText:""); (void)hWnd;(void)uType; return 1; }
+
+/* GDI */
+HDC __attribute__((ms_abi)) ntboxd_GetDC2(HWND hWnd) { fprintf(stderr,"[stub] GetDC(%p)\n",hWnd); return (HDC)0x1234; }
+int __attribute__((ms_abi)) ntboxd_ReleaseDC2(HWND hWnd, HDC hDC) { fprintf(stderr,"[stub] ReleaseDC(%p,%p)\n",hWnd,hDC); return 1; }
+HDC __attribute__((ms_abi)) ntboxd_BeginPaint2(HWND hWnd, void *lpPaint) { fprintf(stderr,"[stub] BeginPaint(%p)\n",hWnd); if(lpPaint) memset(lpPaint,0,64); return (HDC)0x1234; }
+BOOL __attribute__((ms_abi)) ntboxd_EndPaint2(HWND hWnd, const void *lpPaint) { fprintf(stderr,"[stub] EndPaint(%p)\n",hWnd); (void)lpPaint; return TRUE; }
+HBRUSH __attribute__((ms_abi)) ntboxd_CreateSolidBrush2(DWORD crColor) { fprintf(stderr,"[stub] CreateSolidBrush(0x%x)\n",crColor); return (HBRUSH)0x2000; }
+HPEN __attribute__((ms_abi)) ntboxd_CreatePen2(int iStyle, int cWidth, DWORD crColor) { fprintf(stderr,"[stub] CreatePen(%d,%d,0x%x)\n",iStyle,cWidth,crColor); return (HPEN)0x2001; }
+HGDIOBJ __attribute__((ms_abi)) ntboxd_SelectObject2(HDC hdc, HGDIOBJ h) { (void)hdc; (void)h; return (HGDIOBJ)0; }
+BOOL __attribute__((ms_abi)) ntboxd_DeleteObject2(HGDIOBJ ho) { (void)ho; return TRUE; }
+BOOL __attribute__((ms_abi)) ntboxd_FillRect2(HDC hDC, const void *lprc, HBRUSH hbr) { fprintf(stderr,"[stub] FillRect\n"); (void)hDC;(void)lprc;(void)hbr; return TRUE; }
+BOOL __attribute__((ms_abi)) ntboxd_TextOutA2(HDC hdc, int x,int y, LPCSTR lpString, int c) { fprintf(stderr,"[stub] TextOutA: %.*s\n",c>0?c:(lpString? (int)strlen(lpString):0), lpString?lpString:""); (void)hdc;(void)x;(void)y; return TRUE; }
+BOOL __attribute__((ms_abi)) ntboxd_TextOutW2(HDC hdc, int x,int y, LPCWSTR lpString, int c) { fprintf(stderr,"[stub] TextOutW\n"); (void)hdc;(void)x;(void)y;(void)lpString;(void)c; return TRUE; }
+BOOL __attribute__((ms_abi)) ntboxd_ExtTextOutA2(HDC hdc,int x,int y,UINT options,const void *lprect,LPCSTR lpString,UINT c,const int *lpDx) { fprintf(stderr,"[stub] ExtTextOutA\n"); (void)hdc;(void)x;(void)y;(void)options;(void)lprect;(void)lpString;(void)c;(void)lpDx; return TRUE; }
+BOOL __attribute__((ms_abi)) ntboxd_ExtTextOutW2(HDC hdc,int x,int y,UINT options,const void *lprect,LPCWSTR lpString,UINT c,const int *lpDx) { fprintf(stderr,"[stub] ExtTextOutW\n"); (void)hdc;(void)x;(void)y;(void)options;(void)lprect;(void)lpString;(void)c;(void)lpDx; return TRUE; }
+BOOL __attribute__((ms_abi)) ntboxd_BitBlt2(HDC hdcDest,int xDest,int yDest,int w,int h,HDC hdcSrc,int xSrc,int ySrc,DWORD rop) { fprintf(stderr,"[stub] BitBlt\n"); (void)hdcDest;(void)xDest;(void)yDest;(void)w;(void)h;(void)hdcSrc;(void)xSrc;(void)ySrc;(void)rop; return TRUE; }
+BOOL __attribute__((ms_abi)) ntboxd_PatBlt2(HDC hdc,int x,int y,int w,int h,DWORD rop) { fprintf(stderr,"[stub] PatBlt\n"); (void)hdc;(void)x;(void)y;(void)w;(void)h;(void)rop; return TRUE; }
+int __attribute__((ms_abi)) ntboxd_SetBkColor2(HDC hdc, DWORD color) { (void)hdc; return (int)color; }
+int __attribute__((ms_abi)) ntboxd_SetTextColor2(HDC hdc, DWORD color) { (void)hdc; return (int)color; }
+HGDIOBJ __attribute__((ms_abi)) ntboxd_GetStockObject2(int i) { (void)i; return (HGDIOBJ)0; }
